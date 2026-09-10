@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    paper: '#EFF1EA',
+                    ink: '#171A1D',
+                    amber: '#A6642A',
+                    statusGreen: '#2F6845',
+                    statusRed: '#9B3A2E',
+                    statusGrey: '#8A8F87',
+                },
+                fontFamily: {
+                    serif: ['"Source Serif 4"', 'serif'],
+                    sans: ['"IBM Plex Sans"', 'sans-serif'],
+                    mono: ['"IBM Plex Mono"', 'monospace'],
+                },
+                borderRadius: { DEFAULT: '2px', lg: '2px', xl: '2px' },
+            }
+        }
+    }
+    </script>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-paper text-ink font-sans">
+    <div class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="border-b border-gray-300 px-6 py-3 flex justify-between items-center">
+            <div class="font-serif text-xl">HealthPilot Ops</div>
+            <div class="flex gap-4">
+                <!-- Location dropdown - TODO: Wire to real DB data in Block 1 -->
+                <select id="location-select" class="border border-ink px-3 py-2 bg-paper text-ink">
+                    <option value="central">Central Warehouse</option>
+                    <option value="branch-a">Branch A</option>
+                    <option value="branch-b">Branch B</option>
+                    <option value="branch-c">Branch C</option>
+                </select>
+                
+                <!-- Acting as dropdown - TODO: Wire to real DB data in Block 1 -->
+                <select id="acting-as-select" class="border border-ink px-3 py-2 bg-paper text-ink">
+                    <option value="branch-staff">Branch Staff</option>
+                    <option value="central-purchasing">Central Purchasing</option>
+                    <option value="receiving-staff">Receiving Staff</option>
+                </select>
+            </div>
+        </header>
+        
+        <!-- Body row -->
+        <div class="flex flex-1">
+            <!-- Sidebar -->
+            <nav class="w-56 border-r border-gray-300 p-4 bg-paper">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                            Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/requisitions' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                            Requisitions
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/purchase-orders' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                            Purchase Orders
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/goods-receipts' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                            Goods Receipts
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/stock-ledger' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                            Stock Ledger
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/supplier-invoices' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                            Supplier Invoices
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/transfers' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                            Transfers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/dispensing' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                            Dispensing
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <!-- Main content -->
+            <main class="flex-1 p-6">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+</body>
+</html>
