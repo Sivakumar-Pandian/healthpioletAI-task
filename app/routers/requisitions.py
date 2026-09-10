@@ -3,31 +3,20 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+from app.context import header_context
 from app.database import get_db
 from app.document_numbers import next_document_number
 from app.models import (
     AppUser,
     Location,
     Product,
+    PurchaseOrder,
     Requisition,
     RequisitionStatus,
-    UserRole,
 )
 
 router = APIRouter(prefix="/requisitions", tags=["requisitions"])
 templates = Jinja2Templates(directory="templates")
-
-
-def shared_context(db: Session):
-    return {
-        "locations": db.query(Location).order_by(Location.id).all(),
-        "app_users": db.query(AppUser).order_by(AppUser.id).all(),
-        "user_roles": [
-            (UserRole.BRANCH_STAFF, "Branch Staff"),
-            (UserRole.CENTRAL_PURCHASING, "Central Purchasing"),
-            (UserRole.RECEIVING_STAFF, "Receiving Staff"),
-        ],
-    }
 
 
 def get_requisition_or_404(db: Session, requisition_id: int):
@@ -39,14 +28,14 @@ def get_requisition_or_404(db: Session, requisition_id: int):
 
 @router.get("", response_class=HTMLResponse)
 def list_requisitions(request: Request, db: Session = Depends(get_db)):
-    context = shared_context(db)
+    context = header_context(db)
     context["requisitions"] = db.query(Requisition).order_by(Requisition.id).all()
     return templates.TemplateResponse(request, "requisitions_list.html", context)
 
 
 @router.get("/new", response_class=HTMLResponse)
 def new_requisition_form(request: Request, db: Session = Depends(get_db)):
-    context = shared_context(db)
+    context = header_context(db)
     context["products"] = db.query(Product).order_by(Product.name).all()
     return templates.TemplateResponse(request, "requisitions_new.html", context)
 
@@ -110,6 +99,12 @@ def requisition_detail(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    context = shared_context(db)
-    context["requisition"] = get_requisition_or_404(db, requisition_id)
+    requisition = get_requisition_or_404(db, requisition_id)
+    context = header_context(db)
+    context["requisition"] = requisition
+    context["purchase_order"] = (
+        db.query(PurchaseOrder)
+        .filter(PurchaseOrder.requisition_id == requisition.id)
+        .first()
+    )
     return templates.TemplateResponse(request, "requisitions_detail.html", context)

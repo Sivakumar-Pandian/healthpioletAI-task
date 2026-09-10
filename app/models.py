@@ -81,3 +81,37 @@ class Requisition(Base):
     location = relationship("Location")
     product = relationship("Product")
     requester = relationship("AppUser")
+
+
+class PurchaseOrderStatus(str, enum.Enum):
+    OPEN = "OPEN"
+    PARTIALLY_RECEIVED = "PARTIALLY_RECEIVED"
+    CLOSED = "CLOSED"
+
+
+class PurchaseOrder(Base):
+    __tablename__ = "purchase_orders"
+
+    id = Column(Integer, primary_key=True)
+    document_no = Column(String, unique=True, nullable=False)
+    requisition_id = Column(Integer, ForeignKey("requisitions.id"), nullable=False)
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    unit_price = Column(Float, nullable=False)
+    tax_percent = Column(Float, nullable=False)
+    value_before_tax = Column(Float, nullable=False)
+    tax_amount = Column(Float, nullable=False)
+    total_value = Column(Float, nullable=False)
+    delivery_location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
+    status = Column(
+        Enum(PurchaseOrderStatus),
+        nullable=False,
+        default=PurchaseOrderStatus.OPEN,
+    )
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    requisition = relationship("Requisition")
+    supplier = relationship("Supplier")
+    product = relationship("Product")
+    delivery_location = relationship("Location")

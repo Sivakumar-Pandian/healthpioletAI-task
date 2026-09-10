@@ -6,7 +6,9 @@ from fastapi.requests import Request
 from sqlalchemy.orm import Session
 
 from app.database import Base, SessionLocal, engine, get_db
-from app.models import AppUser, Location, Product, Supplier, UserRole
+from app.context import header_context
+from app.models import Product, Supplier
+from app.routers.purchase_orders import router as purchase_orders_router
 from app.routers.requisitions import router as requisitions_router
 from app.seed import seed_if_empty
 
@@ -28,6 +30,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Set up Jinja2 templates
 templates = Jinja2Templates(directory="templates")
 app.include_router(requisitions_router)
+app.include_router(purchase_orders_router)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -35,13 +38,13 @@ def read_root(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(
         request,
         "index.html",
-        template_context(db),
+        header_context(db),
     )
 
 
 @app.get("/master-data", response_class=HTMLResponse)
 def master_data(request: Request, db: Session = Depends(get_db)):
-    context = template_context(db)
+    context = header_context(db)
     context.update(
         {
             "products": db.query(Product).order_by(Product.id).all(),
@@ -49,15 +52,3 @@ def master_data(request: Request, db: Session = Depends(get_db)):
         }
     )
     return templates.TemplateResponse(request, "master_data.html", context)
-
-
-def template_context(db: Session):
-    return {
-        "locations": db.query(Location).order_by(Location.id).all(),
-        "app_users": db.query(AppUser).order_by(AppUser.id).all(),
-        "user_roles": [
-            (UserRole.BRANCH_STAFF, "Branch Staff"),
-            (UserRole.CENTRAL_PURCHASING, "Central Purchasing"),
-            (UserRole.RECEIVING_STAFF, "Receiving Staff"),
-        ],
-    }

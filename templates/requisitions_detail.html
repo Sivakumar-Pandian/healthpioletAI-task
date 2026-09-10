@@ -16,5 +16,15 @@
     <div class="border-b border-gray-300 py-3 md:col-span-2"><dt class="text-gray-600">Reason</dt><dd>{{ requisition.reason or '—' }}</dd></div>
 </dl>
 
+{% if requisition.status.value == 'APPROVED' %}
+<div class="mt-6">
+    {% if purchase_order %}
+    <a href="/purchase-orders/{{ purchase_order.id }}" class="text-ink underline">View Purchase Order {{ purchase_order.document_no }}</a>
+    {% else %}
+    <a href="/purchase-orders/new?requisition_id={{ requisition.id }}" class="bg-ink text-white px-4 py-2 text-sm">Create Purchase Order from this Requisition</a>
+    {% endif %}
+</div>
+{% endif %}
+
 <p class="mt-8 text-gray-600">Chain view (linking to Purchase Order, GRN, etc.) will be added in Block 10.</p>
 {% endblock %}

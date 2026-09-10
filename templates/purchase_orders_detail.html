@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Purchase Order <span class="font-mono text-xl">{{ purchase_order.document_no }}</span></h1>
+    <a href="/purchase-orders" class="text-ink underline text-sm">Back to Purchase Orders</a>
+</div>
+
+<p class="font-mono text-sm mb-6"><a href="/requisitions/{{ purchase_order.requisition.id }}" class="text-ink underline">{{ purchase_order.requisition.document_no }}</a> → {{ purchase_order.document_no }}</p>
+
+<dl class="grid grid-cols-1 md:grid-cols-2 max-w-3xl border-t border-ink text-sm">
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Supplier</dt><dd>{{ purchase_order.supplier.name }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Product</dt><dd>{{ purchase_order.product.name }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Quantity</dt><dd>{{ purchase_order.quantity }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Delivery Location</dt><dd>{{ purchase_order.delivery_location.name }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Unit Price</dt><dd>{{ "₹{:,.2f}".format(purchase_order.unit_price) }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Tax Percent</dt><dd>{{ purchase_order.tax_percent }}%</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Value Before Tax</dt><dd>{{ "₹{:,.2f}".format(purchase_order.value_before_tax) }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Tax Amount</dt><dd>{{ "₹{:,.2f}".format(purchase_order.tax_amount) }}</dd></div>
+    <div class="border-b border-gray-300 py-3 md:col-span-2"><dt class="text-gray-600">Total Value</dt><dd>{{ "₹{:,.2f}".format(purchase_order.total_value) }}</dd></div>
+</dl>
+{% endblock %}

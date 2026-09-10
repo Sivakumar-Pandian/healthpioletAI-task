@@ -74,7 +74,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/purchase-orders' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                        <a href="/purchase-orders" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path.startswith('/purchase-orders') %}border-l-4 border-amber bg-gray-100{% endif %}">
                             Purchase Orders
                         </a>
                     </li>
