@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Stock Ledger</h1>
+</div>
+
+<form method="get" action="/stock-ledger" class="flex flex-wrap items-end gap-4 mb-6 text-sm">
+    <label>
+        <span class="block mb-1">Location</span>
+        <select name="location_id" class="border border-ink px-3 py-2 bg-paper">
+            <option value="">All locations</option>
+            {% for loc in locations %}
+            <option value="{{ loc.id }}" {% if selected_location_id == loc.id %}selected{% endif %}>{{ loc.name }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>
+        <span class="block mb-1">Batch Number</span>
+        <select name="batch_number" class="border border-ink px-3 py-2 bg-paper">
+            <option value="">All batches</option>
+            {% for batch in batch_options %}
+            <option value="{{ batch }}" {% if selected_batch_number == batch %}selected{% endif %}>{{ batch }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <button type="submit" class="bg-ink text-white px-4 py-2">Filter</button>
+</form>
+
+<div class="flex gap-8 mb-4 text-sm">
+    <div><span class="text-gray-600">Opening balance:</span> <span class="font-mono">{{ opening_balance }}</span></div>
+    <div><span class="text-gray-600">Closing balance:</span> <span class="font-mono">{{ closing_balance }}</span></div>
+</div>
+
+{% if ledger_rows %}
+<div class="overflow-x-auto">
+    <table class="w-full border-collapse text-sm">
+        <thead class="border-y border-ink text-left">
+            <tr>
+                <th class="py-2 pr-3">Timestamp</th>
+                <th class="py-2 pr-3">Location</th>
+                <th class="py-2 pr-3">Batch</th>
+                <th class="py-2 pr-3">Txn Type</th>
+                <th class="py-2 pr-3">Stock Status</th>
+                <th class="py-2 pr-3">Reference</th>
+                <th class="py-2 pr-3 text-right">Quantity In</th>
+                <th class="py-2 pr-3 text-right">Quantity Out</th>
+                <th class="py-2 text-right">Running Balance</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in ledger_rows %}
+            <tr class="border-b border-gray-300 {% if loop.index is divisibleby 2 %}bg-gray-100{% endif %}">
+                <td class="py-2 pr-3">{{ row.entry.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td class="py-2 pr-3">{{ row.entry.location.name }}</td>
+                <td class="py-2 pr-3 font-mono">{{ row.entry.batch_number }}</td>
+                <td class="py-2 pr-3">{{ row.entry.txn_type.value }}</td>
+                <td class="py-2 pr-3">
+                    {% if row.entry.stock_status.value == 'USABLE' %}
+                    <span class="bg-statusGreen text-white px-2 py-1 text-xs">{{ row.entry.stock_status.value }}</span>
+                    {% else %}
+                    <span class="bg-statusRed text-white px-2 py-1 text-xs">{{ row.entry.stock_status.value }}</span>
+                    {% endif %}
+                </td>
+                <td class="py-2 pr-3 font-mono">
+                    {% if row.entry.reference_document.startswith('GRN') and row.entry.reference_document in receipt_ids %}
+                    <a href="/goods-receipts/{{ receipt_ids[row.entry.reference_document] }}" class="underline">{{ row.entry.reference_document }}</a>
+                    {% else %}
+                    {{ row.entry.reference_document }}
+                    {% endif %}
+                </td>
+                <td class="py-2 pr-3 text-right">{{ row.entry.quantity_in }}</td>
+                <td class="py-2 pr-3 text-right">{{ row.entry.quantity_out }}</td>
+                <td class="py-2 text-right font-mono">{{ row.running_balance }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-gray-600">No stock ledger entries yet.</p>
+{% endif %}
+{% endblock %}

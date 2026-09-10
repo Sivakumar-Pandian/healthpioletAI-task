@@ -79,12 +79,12 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/goods-receipts' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                        <a href="/goods-receipts" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path.startswith('/goods-receipts') %}border-l-4 border-amber bg-gray-100{% endif %}">
                             Goods Receipts
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/stock-ledger' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                        <a href="/stock-ledger" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path.startswith('/stock-ledger') %}border-l-4 border-amber bg-gray-100{% endif %}">
                             Stock Ledger
                         </a>
                     </li>

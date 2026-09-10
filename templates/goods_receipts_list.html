@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Goods Receipt Notes</h1>
+</div>
+
+{% if goods_receipts %}
+<div class="overflow-x-auto">
+    <table class="w-full border-collapse text-sm">
+        <thead class="border-y border-ink text-left">
+            <tr>
+                <th class="py-2 pr-3">Document</th>
+                <th class="py-2 pr-3">Purchase Order</th>
+                <th class="py-2 pr-3">Batch</th>
+                <th class="py-2 pr-3 text-right">Physical</th>
+                <th class="py-2 pr-3 text-right">Accepted</th>
+                <th class="py-2 pr-3 text-right">Damaged</th>
+                <th class="py-2 pr-3 text-right">Missing</th>
+                <th class="py-2 pr-3">Posted By</th>
+                <th class="py-2">Posted At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for receipt in goods_receipts %}
+            <tr class="border-b border-gray-300">
+                <td class="py-3 pr-3 font-mono"><a href="/goods-receipts/{{ receipt.id }}" class="text-ink underline">{{ receipt.document_no }}</a></td>
+                <td class="py-3 pr-3 font-mono"><a href="/purchase-orders/{{ receipt.purchase_order.id }}" class="text-ink underline">{{ receipt.purchase_order.document_no }}</a></td>
+                <td class="py-3 pr-3 font-mono">{{ receipt.batch_number }}</td>
+                <td class="py-3 pr-3 text-right">{{ receipt.physical_quantity }}</td>
+                <td class="py-3 pr-3 text-right text-statusGreen">{{ receipt.accepted_quantity }}</td>
+                <td class="py-3 pr-3 text-right text-statusRed">{{ receipt.damaged_quantity }}</td>
+                <td class="py-3 pr-3 text-right text-statusGrey">{{ receipt.missing_quantity }}</td>
+                <td class="py-3 pr-3">{{ receipt.posted_by.name }}</td>
+                <td class="py-3">{{ receipt.posted_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-gray-600">No goods receipt notes yet.</p>
+{% endif %}
+{% endblock %}

@@ -115,3 +115,56 @@ class PurchaseOrder(Base):
     supplier = relationship("Supplier")
     product = relationship("Product")
     delivery_location = relationship("Location")
+
+
+class StockStatus(str, enum.Enum):
+    USABLE = "USABLE"
+    QUARANTINED = "QUARANTINED"
+
+
+class LedgerTxnType(str, enum.Enum):
+    RECEIPT = "RECEIPT"
+    DAMAGE = "DAMAGE"
+    CORRECTION = "CORRECTION"
+    TRANSFER_OUT = "TRANSFER_OUT"
+    TRANSFER_IN = "TRANSFER_IN"
+    ISSUE = "ISSUE"
+
+
+class GoodsReceiptNote(Base):
+    __tablename__ = "goods_receipt_notes"
+
+    id = Column(Integer, primary_key=True)
+    document_no = Column(String, unique=True, nullable=False)
+    po_id = Column(Integer, ForeignKey("purchase_orders.id"), nullable=False)
+    batch_number = Column(String, nullable=False)
+    expiry_date = Column(String, nullable=False)
+    physical_quantity = Column(Integer, nullable=False)
+    accepted_quantity = Column(Integer, nullable=False)
+    damaged_quantity = Column(Integer, nullable=False)
+    missing_quantity = Column(Integer, nullable=False)
+    posted_by_id = Column(Integer, ForeignKey("app_users.id"), nullable=False)
+    posted_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    purchase_order = relationship("PurchaseOrder")
+    posted_by = relationship("AppUser")
+
+
+class StockLedgerEntry(Base):
+    __tablename__ = "stock_ledger_entries"
+
+    id = Column(Integer, primary_key=True)
+    location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    batch_number = Column(String, nullable=False)
+    txn_type = Column(Enum(LedgerTxnType), nullable=False)
+    stock_status = Column(Enum(StockStatus), nullable=False)
+    quantity_in = Column(Integer, nullable=False, default=0)
+    quantity_out = Column(Integer, nullable=False, default=0)
+    reference_document = Column(String, nullable=False)
+    performed_by_id = Column(Integer, ForeignKey("app_users.id"), nullable=False)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+
+    location = relationship("Location")
+    product = relationship("Product")
+    performed_by = relationship("AppUser")

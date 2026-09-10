@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Goods Receipt <span class="font-mono text-xl">{{ goods_receipt.document_no }}</span></h1>
+    <a href="/goods-receipts" class="text-ink underline text-sm">Back to Goods Receipts</a>
+</div>
+
+<p class="font-mono text-sm mb-6"><a href="/requisitions/{{ goods_receipt.purchase_order.requisition.id }}" class="text-ink underline">{{ goods_receipt.purchase_order.requisition.document_no }}</a> → <a href="/purchase-orders/{{ goods_receipt.purchase_order.id }}" class="text-ink underline">{{ goods_receipt.purchase_order.document_no }}</a> → {{ goods_receipt.document_no }}</p>
+
+<dl class="grid grid-cols-1 md:grid-cols-2 max-w-3xl border-t border-ink text-sm">
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Purchase Order</dt><dd class="font-mono"><a href="/purchase-orders/{{ goods_receipt.purchase_order.id }}" class="underline">{{ goods_receipt.purchase_order.document_no }}</a></dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Supplier</dt><dd>{{ goods_receipt.purchase_order.supplier.name }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Product</dt><dd>{{ goods_receipt.purchase_order.product.name }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Location</dt><dd>{{ goods_receipt.purchase_order.delivery_location.name }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Batch Number</dt><dd class="font-mono">{{ goods_receipt.batch_number }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Expiry Date</dt><dd>{{ goods_receipt.expiry_date }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Physical Quantity</dt><dd>{{ goods_receipt.physical_quantity }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Accepted Quantity</dt><dd class="text-statusGreen">{{ goods_receipt.accepted_quantity }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Damaged Quantity</dt><dd class="text-statusRed">{{ goods_receipt.damaged_quantity }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Missing Quantity</dt><dd class="text-statusGrey">{{ goods_receipt.missing_quantity }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Posted By</dt><dd>{{ goods_receipt.posted_by.name }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Posted At</dt><dd>{{ goods_receipt.posted_at.strftime('%Y-%m-%d %H:%M') }}</dd></div>
+</dl>
+
+<div class="mt-8 max-w-3xl">
+    <h2 class="font-serif text-xl mb-3">Computed Stock for this Batch</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div class="border border-gray-300 p-4"><span class="block text-gray-600">Usable</span><span class="text-statusGreen text-xl">{{ usable_stock }}</span></div>
+        <div class="border border-gray-300 p-4"><span class="block text-gray-600">Quarantined</span><span class="text-statusRed text-xl">{{ quarantined_stock }}</span></div>
+    </div>
+</div>
+{% endblock %}

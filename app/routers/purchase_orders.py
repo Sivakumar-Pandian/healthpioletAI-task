@@ -13,6 +13,7 @@ from app.models import (
     Requisition,
     RequisitionStatus,
     Supplier,
+    GoodsReceiptNote,
 )
 
 router = APIRouter(prefix="/purchase-orders", tags=["purchase-orders"])
@@ -106,5 +107,11 @@ def purchase_order_detail(
     db: Session = Depends(get_db),
 ):
     context = header_context(db)
-    context["purchase_order"] = get_purchase_order_or_404(db, purchase_order_id)
+    purchase_order = get_purchase_order_or_404(db, purchase_order_id)
+    context["purchase_order"] = purchase_order
+    context["goods_receipt"] = (
+        db.query(GoodsReceiptNote)
+        .filter(GoodsReceiptNote.po_id == purchase_order.id)
+        .first()
+    )
     return templates.TemplateResponse(request, "purchase_orders_detail.html", context)

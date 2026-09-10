@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Receive Goods</h1>
+    <a href="/purchase-orders/{{ purchase_order.id }}" class="text-ink underline text-sm">Back to Purchase Order</a>
+</div>
+
+{% if error_messages %}
+<div role="alert" class="border border-statusRed text-statusRed px-4 py-3 max-w-3xl mb-6 text-sm">
+    <p class="font-medium mb-1">Please check the receipt details.</p>
+    <ul class="list-disc ml-5 mt-1 space-y-1">
+        {% for message in error_messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="border-y border-ink max-w-3xl grid grid-cols-1 md:grid-cols-3 text-sm mb-8">
+    <div class="py-3 border-b border-gray-300"><span class="block text-gray-600">Purchase Order</span><span class="font-mono">{{ purchase_order.document_no }}</span></div>
+    <div class="py-3 border-b border-gray-300"><span class="block text-gray-600">Product</span>{{ purchase_order.product.name }}</div>
+    <div class="py-3 border-b border-gray-300"><span class="block text-gray-600">Ordered Quantity</span>{{ purchase_order.quantity }} {{ purchase_order.product.unit }}{% if purchase_order.product.unit != 'unit' %}{% endif %}</div>
+    <div class="py-3 md:col-span-2"><span class="block text-gray-600">Supplier</span>{{ purchase_order.supplier.name }}</div>
+    <div class="py-3"><span class="block text-gray-600">Delivery Location</span>{{ purchase_order.delivery_location.name }}</div>
+</div>
+
+<form id="goods-receipt-form" action="/goods-receipts/new" method="post" class="max-w-xl space-y-5">
+    <input type="hidden" name="po_id" value="{{ purchase_order.id }}">
+    <input id="posted-by-id" type="hidden" name="posted_by_id">
+
+    <label class="block text-sm">
+        <span class="block mb-1">Batch Number</span>
+        <input name="batch_number" type="text" value="{{ form_data.batch_number }}" class="w-full border border-ink px-3 py-2 bg-paper font-mono" required>
+    </label>
+
+    <label class="block text-sm">
+        <span class="block mb-1">Expiry Date</span>
+        <input name="expiry_date" type="date" value="{{ form_data.expiry_date }}" class="w-full border border-ink px-3 py-2 bg-paper" required>
+    </label>
+
+    <div class="grid grid-cols-2 gap-4">
+        <label class="block text-sm">
+            <span class="block mb-1">Physical Quantity</span>
+            <input id="physical-quantity" name="physical_quantity" type="number" min="0" value="{{ form_data.physical_quantity }}" class="w-full border border-ink px-3 py-2 bg-paper" required>
+        </label>
+        <label class="block text-sm">
+            <span class="block mb-1">Accepted Quantity</span>
+            <input id="accepted-quantity" name="accepted_quantity" type="number" min="0" value="{{ form_data.accepted_quantity }}" class="w-full border border-ink px-3 py-2 bg-paper" required>
+        </label>
+        <label class="block text-sm">
+            <span class="block mb-1">Damaged Quantity</span>
+            <input id="damaged-quantity" name="damaged_quantity" type="number" min="0" value="{{ form_data.damaged_quantity }}" class="w-full border border-ink px-3 py-2 bg-paper" required>
+        </label>
+        <label class="block text-sm">
+            <span class="block mb-1">Missing Quantity</span>
+            <input id="missing-quantity" name="missing_quantity" type="number" min="0" value="{{ form_data.missing_quantity }}" class="w-full border border-ink px-3 py-2 bg-paper" required>
+        </label>
+    </div>
+
+    <div id="quantity-summary" class="text-sm text-gray-600" aria-live="polite">Enter the quantities to see the reconciliation.</div>
+    <ul id="validation-list" class="space-y-1 text-sm" aria-live="polite"></ul>
+
+    <button type="submit" class="bg-ink text-white px-4 py-2 text-sm">Post Goods Receipt</button>
+</form>
+
+<script>
+const postedByInput = document.getElementById('posted-by-id');
+const actingAsSelect = document.getElementById('acting-as-select');
+const physicalInput = document.getElementById('physical-quantity');
+const acceptedInput = document.getElementById('accepted-quantity');
+const damagedInput = document.getElementById('damaged-quantity');
+const missingInput = document.getElementById('missing-quantity');
+const summary = document.getElementById('quantity-summary');
+const validationList = document.getElementById('validation-list');
+const receiptForm = document.getElementById('goods-receipt-form');
+const orderedQuantity = {{ purchase_order.quantity }};
+const quantityInputs = [physicalInput, acceptedInput, damagedInput, missingInput];
+
+function syncPostedBy() {
+    postedByInput.value = actingAsSelect.value;
+}
+
+function numberValue(input) {
+    return Number(input.value || 0);
+}
+
+function validateQuantities() {
+    const physical = numberValue(physicalInput);
+    const accepted = numberValue(acceptedInput);
+    const damaged = numberValue(damagedInput);
+    const missing = numberValue(missingInput);
+    const breakdown = accepted + damaged;
+    const hasInput = quantityInputs.some((input) => input.value.trim() !== '');
+
+    validationList.replaceChildren();
+    if (!hasInput) {
+        summary.textContent = 'Enter the quantities to see the reconciliation.';
+        return false;
+    }
+
+    const checks = [
+        {
+            valid: breakdown === physical,
+            message: breakdown === physical
+                ? `Accepted (${accepted}) + damaged (${damaged}) = physical (${physical}).`
+                : `Please fix the receipt quantities: accepted (${accepted}) + damaged (${damaged}) = ${breakdown}, but physical is ${physical}.`,
+        },
+        {
+            valid: physical + missing === orderedQuantity,
+            message: physical + missing === orderedQuantity
+                ? `Physical (${physical}) + missing (${missing}) matches the PO quantity (${orderedQuantity}).`
+                : `Please fix the PO reconciliation: physical (${physical}) + missing (${missing}) = ${physical + missing}, but the PO quantity is ${orderedQuantity}.`,
+        },
+    ];
+
+    summary.textContent = `Received physically: ${physical} | Accepted: ${accepted} | Damaged: ${damaged} | Missing: ${missing}`;
+    checks.forEach((check) => {
+        const item = document.createElement('li');
+        item.textContent = `${check.valid ? '✓' : '•'} ${check.message}`;
+        item.className = check.valid ? 'text-statusGreen' : 'text-statusRed';
+        validationList.appendChild(item);
+    });
+    return checks.every((check) => check.valid);
+}
+
+syncPostedBy();
+actingAsSelect.addEventListener('change', syncPostedBy);
+quantityInputs.forEach((input) => {
+    input.addEventListener('input', validateQuantities);
+});
+
+receiptForm.addEventListener('submit', (event) => {
+    syncPostedBy();
+    if (!validateQuantities()) {
+        event.preventDefault();
+        validationList.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+});
+validateQuantities();
+</script>
+{% endblock %}

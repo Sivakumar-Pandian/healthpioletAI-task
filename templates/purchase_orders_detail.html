@@ -19,4 +19,12 @@
     <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Tax Amount</dt><dd>{{ "₹{:,.2f}".format(purchase_order.tax_amount) }}</dd></div>
     <div class="border-b border-gray-300 py-3 md:col-span-2"><dt class="text-gray-600">Total Value</dt><dd>{{ "₹{:,.2f}".format(purchase_order.total_value) }}</dd></div>
 </dl>
+
+<div class="mt-6">
+    {% if goods_receipt %}
+    <a href="/goods-receipts/{{ goods_receipt.id }}" class="text-ink underline">View Goods Receipt {{ goods_receipt.document_no }}</a>
+    {% elif purchase_order.status.value in ['OPEN', 'PARTIALLY_RECEIVED'] %}
+    <a href="/goods-receipts/new?po_id={{ purchase_order.id }}" class="bg-ink text-white px-4 py-2 text-sm">Receive Goods for this PO</a>
+    {% endif %}
+</div>
 {% endblock %}
