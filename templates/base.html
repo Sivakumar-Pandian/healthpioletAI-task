@@ -40,19 +40,20 @@
         <header class="border-b border-gray-300 px-6 py-3 flex justify-between items-center">
             <div class="font-serif text-xl">HealthPilot Ops</div>
             <div class="flex gap-4">
-                <!-- Location dropdown - TODO: Wire to real DB data in Block 1 -->
                 <select id="location-select" class="border border-ink px-3 py-2 bg-paper text-ink">
-                    <option value="central">Central Warehouse</option>
-                    <option value="branch-a">Branch A</option>
-                    <option value="branch-b">Branch B</option>
-                    <option value="branch-c">Branch C</option>
+                    {% for loc in locations %}
+                    <option value="{{ loc.id }}">{{ loc.name }}</option>
+                    {% endfor %}
                 </select>
                 
-                <!-- Acting as dropdown - TODO: Wire to real DB data in Block 1 -->
                 <select id="acting-as-select" class="border border-ink px-3 py-2 bg-paper text-ink">
-                    <option value="branch-staff">Branch Staff</option>
-                    <option value="central-purchasing">Central Purchasing</option>
-                    <option value="receiving-staff">Receiving Staff</option>
+                    {% for role, role_label in user_roles %}
+                    <optgroup label="{{ role_label }}">
+                        {% for user in app_users if user.role == role %}
+                        <option value="{{ user.id }}">{{ user.name }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endfor %}
                 </select>
             </div>
         </header>
@@ -63,42 +64,42 @@
             <nav class="w-56 border-r border-gray-300 p-4 bg-paper">
                 <ul class="space-y-2">
                     <li>
-                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                        <a href="#" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/' %}border-l-4 border-amber bg-gray-100{% endif %}">
                             Dashboard
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/requisitions' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                        <a href="#" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/requisitions' %}border-l-4 border-amber bg-gray-100{% endif %}">
                             Requisitions
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/purchase-orders' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                        <a href="#" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/purchase-orders' %}border-l-4 border-amber bg-gray-100{% endif %}">
                             Purchase Orders
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/goods-receipts' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                        <a href="#" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/goods-receipts' %}border-l-4 border-amber bg-gray-100{% endif %}">
                             Goods Receipts
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/stock-ledger' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                        <a href="#" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/stock-ledger' %}border-l-4 border-amber bg-gray-100{% endif %}">
                             Stock Ledger
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/supplier-invoices' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                        <a href="#" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/supplier-invoices' %}border-l-4 border-amber bg-gray-100{% endif %}">
                             Supplier Invoices
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/transfers' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                        <a href="#" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/transfers' %}border-l-4 border-amber bg-gray-100{% endif %}">
                             Transfers
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="block px-4 py-2 hover:bg-gray-200 {% if request.url.path == '/dispensing' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                        <a href="#" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/dispensing' %}border-l-4 border-amber bg-gray-100{% endif %}">
                             Dispensing
                         </a>
                     </li>
