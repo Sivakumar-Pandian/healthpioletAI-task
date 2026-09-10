@@ -69,7 +69,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/requisitions' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                        <a href="/requisitions" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path.startswith('/requisitions') %}border-l-4 border-amber bg-gray-100{% endif %}">
                             Requisitions
                         </a>
                     </li>
@@ -112,5 +112,15 @@
             </main>
         </div>
     </div>
+    <script>
+    for (const select of document.querySelectorAll('#location-select, #acting-as-select')) {
+        const storageKey = `healthpilot:${select.id}`;
+        const savedValue = localStorage.getItem(storageKey);
+        if (savedValue && select.querySelector(`option[value="${savedValue}"]`)) {
+            select.value = savedValue;
+        }
+        select.addEventListener('change', () => localStorage.setItem(storageKey, select.value));
+    }
+    </script>
 </body>
 </html>

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import Base, SessionLocal, engine, get_db
 from app.models import AppUser, Location, Product, Supplier, UserRole
+from app.routers.requisitions import router as requisitions_router
 from app.seed import seed_if_empty
 
 app = FastAPI()
@@ -26,6 +27,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Set up Jinja2 templates
 templates = Jinja2Templates(directory="templates")
+app.include_router(requisitions_router)
 
 
 @app.get("/", response_class=HTMLResponse)

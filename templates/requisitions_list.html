@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Requisitions</h1>
+    <a href="/requisitions/new" class="bg-ink text-white px-4 py-2 text-sm">New Requisition</a>
+</div>
+
+{% if requisitions %}
+<div class="overflow-x-auto">
+    <table class="w-full border-collapse text-sm">
+        <thead class="border-y border-ink text-left">
+            <tr>
+                <th class="py-2 pr-3">Document</th>
+                <th class="py-2 pr-3">Location</th>
+                <th class="py-2 pr-3">Product</th>
+                <th class="py-2 pr-3 text-right">Quantity</th>
+                <th class="py-2 pr-3">Required Date</th>
+                <th class="py-2 pr-3">Requester</th>
+                <th class="py-2 pr-3">Status</th>
+                <th class="py-2">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for requisition in requisitions %}
+            <tr class="border-b border-gray-300">
+                <td class="py-3 pr-3 font-mono"><a class="text-ink underline" href="/requisitions/{{ requisition.id }}">{{ requisition.document_no }}</a></td>
+                <td class="py-3 pr-3">{{ requisition.location.name }}</td>
+                <td class="py-3 pr-3">{{ requisition.product.name }}</td>
+                <td class="py-3 pr-3 text-right">{{ requisition.quantity }}</td>
+                <td class="py-3 pr-3">{{ requisition.required_date }}</td>
+                <td class="py-3 pr-3">{{ requisition.requester.name }}</td>
+                <td class="py-3 pr-3">
+                    {% if requisition.status.value == 'APPROVED' %}
+                    <span class="bg-statusGreen text-white px-2 py-1 text-xs">{{ requisition.status.value }}</span>
+                    {% elif requisition.status.value == 'REJECTED' %}
+                    <span class="bg-statusRed text-white px-2 py-1 text-xs">{{ requisition.status.value }}</span>
+                    {% else %}
+                    <span class="bg-statusGrey text-white px-2 py-1 text-xs">{{ requisition.status.value }}</span>
+                    {% endif %}
+                </td>
+                <td class="py-3 whitespace-nowrap">
+                    {% if requisition.status.value == 'SUBMITTED' %}
+                    <form action="/requisitions/{{ requisition.id }}/approve" method="post" class="inline">
+                        <button type="submit" class="border border-statusGreen text-statusGreen px-2 py-1 text-xs">Approve</button>
+                    </form>
+                    <form action="/requisitions/{{ requisition.id }}/reject" method="post" class="inline">
+                        <button type="submit" class="border border-statusRed text-statusRed px-2 py-1 text-xs">Reject</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-gray-600">No requisitions yet — create one <a href="/requisitions/new" class="text-ink underline">below</a>.</p>
+{% endif %}
+{% endblock %}

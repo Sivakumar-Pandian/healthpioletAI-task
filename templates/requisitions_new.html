@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="font-serif text-2xl mb-6">New Requisition</h1>
+
+<form action="/requisitions/new" method="post" class="max-w-xl space-y-5">
+    <input id="location-id" type="hidden" name="location_id">
+    <input id="requester-id" type="hidden" name="requester_id">
+
+    <label class="block text-sm">
+        <span class="block mb-1">Product</span>
+        <select name="product_id" class="w-full border border-ink px-3 py-2 bg-paper" required>
+            {% for product in products %}
+            <option value="{{ product.id }}">{{ product.name }}</option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label class="block text-sm">
+        <span class="block mb-1">Quantity</span>
+        <input name="quantity" type="number" min="1" class="w-full border border-ink px-3 py-2 bg-paper" required>
+    </label>
+
+    <label class="block text-sm">
+        <span class="block mb-1">Required Date</span>
+        <input name="required_date" type="date" class="w-full border border-ink px-3 py-2 bg-paper" required>
+    </label>
+
+    <label class="block text-sm">
+        <span class="block mb-1">Reason</span>
+        <input name="reason" type="text" class="w-full border border-ink px-3 py-2 bg-paper">
+    </label>
+
+    <button type="submit" class="bg-ink text-white px-4 py-2 text-sm">Submit Requisition</button>
+</form>
+
+<script>
+const locationInput = document.getElementById('location-id');
+const requesterInput = document.getElementById('requester-id');
+const locationSelect = document.getElementById('location-select');
+const requesterSelect = document.getElementById('acting-as-select');
+
+function syncHeaderSelections() {
+    locationInput.value = locationSelect.value;
+    requesterInput.value = requesterSelect.value;
+}
+
+syncHeaderSelections();
+locationSelect.addEventListener('change', syncHeaderSelections);
+requesterSelect.addEventListener('change', syncHeaderSelections);
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Requisition <span class="font-mono text-xl">{{ requisition.document_no }}</span></h1>
+    <a href="/requisitions" class="text-ink underline text-sm">Back to Requisitions</a>
+</div>
+
+<dl class="grid grid-cols-1 md:grid-cols-2 max-w-3xl border-t border-ink text-sm">
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Location</dt><dd>{{ requisition.location.name }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Product</dt><dd>{{ requisition.product.name }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Quantity</dt><dd>{{ requisition.quantity }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Required Date</dt><dd>{{ requisition.required_date }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Requester</dt><dd>{{ requisition.requester.name }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Status</dt><dd>{{ requisition.status.value }}</dd></div>
+    <div class="border-b border-gray-300 py-3 md:col-span-2"><dt class="text-gray-600">Reason</dt><dd>{{ requisition.reason or '—' }}</dd></div>
+</dl>
+
+<p class="mt-8 text-gray-600">Chain view (linking to Purchase Order, GRN, etc.) will be added in Block 10.</p>
+{% endblock %}

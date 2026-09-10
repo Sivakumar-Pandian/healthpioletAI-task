@@ -1,6 +1,8 @@
 import enum
+import datetime
 
-from sqlalchemy import Column, Enum, Float, Integer, String
+from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
@@ -49,3 +51,33 @@ class AppUser(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     role = Column(Enum(UserRole), nullable=False)
+
+
+class RequisitionStatus(str, enum.Enum):
+    DRAFT = "DRAFT"
+    SUBMITTED = "SUBMITTED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
+class Requisition(Base):
+    __tablename__ = "requisitions"
+
+    id = Column(Integer, primary_key=True)
+    document_no = Column(String, unique=True, nullable=False)
+    location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    required_date = Column(String, nullable=False)
+    requester_id = Column(Integer, ForeignKey("app_users.id"), nullable=False)
+    reason = Column(String)
+    status = Column(
+        Enum(RequisitionStatus),
+        nullable=False,
+        default=RequisitionStatus.SUBMITTED,
+    )
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    location = relationship("Location")
+    product = relationship("Product")
+    requester = relationship("AppUser")
