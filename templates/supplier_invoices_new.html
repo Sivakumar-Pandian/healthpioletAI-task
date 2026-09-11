@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Record Supplier Invoice</h1>
+    <div class="flex gap-4 text-sm">
+        <a href="/goods-receipts/{{ goods_receipt.id }}" class="text-ink underline">Back to Goods Receipt</a>
+        <a href="/supplier-invoices" class="text-ink underline">Back to Supplier Invoices</a>
+    </div>
+</div>
+
+{% if error_messages %}
+<div role="alert" class="border border-statusRed text-statusRed px-4 py-3 max-w-3xl mb-6 text-sm">
+    <p class="font-medium mb-1">Please check the invoice details.</p>
+    <ul class="list-disc ml-5 mt-1 space-y-1">
+        {% for message in error_messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="border-y border-ink max-w-3xl grid grid-cols-1 md:grid-cols-3 text-sm mb-8">
+    <div class="py-3 border-b border-gray-300"><span class="block text-gray-600">Goods Receipt</span><span class="font-mono">{{ goods_receipt.document_no }}</span></div>
+    <div class="py-3 border-b border-gray-300"><span class="block text-gray-600">Purchase Order</span><span class="font-mono">{{ purchase_order.document_no }}</span></div>
+    <div class="py-3 border-b border-gray-300"><span class="block text-gray-600">Product</span>{{ purchase_order.product.name }}</div>
+    <div class="py-3"><span class="block text-gray-600">Effective Accepted Quantity</span>{{ effective_accepted }}</div>
+    <div class="py-3"><span class="block text-gray-600">Unit Price</span>{{ "₹{:,.2f}".format(purchase_order.unit_price) }}</div>
+    <div class="py-3"><span class="block text-gray-600">Tax Percent</span>{{ purchase_order.tax_percent }}%</div>
+</div>
+
+<form action="/supplier-invoices/new" method="post" class="max-w-xl space-y-5">
+    <input type="hidden" name="grn_id" value="{{ goods_receipt.id }}">
+
+    <label class="block text-sm">
+        <span class="block mb-1">Invoiced Quantity</span>
+        <input name="invoiced_quantity" type="number" min="0" value="{{ form_data.invoiced_quantity }}" class="w-full border border-ink px-3 py-2 bg-paper" required>
+    </label>
+
+    <label class="block text-sm">
+        <span class="block mb-1">Invoiced Value</span>
+        <input name="invoiced_value" type="number" min="0" step="0.01" value="{{ form_data.invoiced_value }}" class="w-full border border-ink px-3 py-2 bg-paper" required>
+    </label>
+
+    <p class="text-sm text-gray-600">Expected payable amount: <span class="font-mono">{{ "₹{:,.2f}".format(expected_payable) }}</span></p>
+
+    <button type="submit" class="bg-ink text-white px-4 py-2 text-sm">Record Supplier Invoice</button>
+</form>
+{% endblock %}

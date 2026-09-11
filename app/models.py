@@ -171,6 +171,30 @@ class GrnCorrection(Base):
     corrected_by = relationship("AppUser")
 
 
+class SupplierInvoiceStatus(str, enum.Enum):
+    MATCHED = "MATCHED"
+    DISPUTED = "DISPUTED"
+
+
+class SupplierInvoice(Base):
+    __tablename__ = "supplier_invoices"
+
+    id = Column(Integer, primary_key=True)
+    document_no = Column(String, unique=True, nullable=False)
+    po_id = Column(Integer, ForeignKey("purchase_orders.id"), nullable=False)
+    grn_id = Column(Integer, ForeignKey("goods_receipt_notes.id"), nullable=False)
+    invoiced_quantity = Column(Integer, nullable=False)
+    invoiced_value = Column(Float, nullable=False)
+    status = Column(Enum(SupplierInvoiceStatus), nullable=False)
+    payable_amount = Column(Float, nullable=False)
+    disputed_amount = Column(Float, nullable=False, default=0)
+    credit_note_reference = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    purchase_order = relationship("PurchaseOrder")
+    goods_receipt_note = relationship("GoodsReceiptNote")
+
+
 class StockLedgerEntry(Base):
     __tablename__ = "stock_ledger_entries"
 

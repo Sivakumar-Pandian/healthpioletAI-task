@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Supplier Invoices</h1>
+</div>
+
+{% if supplier_invoices %}
+<div class="overflow-x-auto">
+    <table class="w-full border-collapse text-sm">
+        <thead class="border-y border-ink text-left">
+            <tr>
+                <th class="py-2 pr-3">Document</th>
+                <th class="py-2 pr-3">Purchase Order</th>
+                <th class="py-2 pr-3">Goods Receipt</th>
+                <th class="py-2 pr-3 text-right">Invoiced Qty</th>
+                <th class="py-2 pr-3 text-right">Invoiced Value</th>
+                <th class="py-2 pr-3 text-right">Payable</th>
+                <th class="py-2 pr-3 text-right">Disputed</th>
+                <th class="py-2 pr-3">Status</th>
+                <th class="py-2">Credit Note</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for invoice in supplier_invoices %}
+            <tr class="border-b border-gray-300">
+                <td class="py-3 pr-3 font-mono"><a href="/supplier-invoices/{{ invoice.id }}" class="text-ink underline">{{ invoice.document_no }}</a></td>
+                <td class="py-3 pr-3 font-mono"><a href="/purchase-orders/{{ invoice.purchase_order.id }}" class="text-ink underline">{{ invoice.purchase_order.document_no }}</a></td>
+                <td class="py-3 pr-3 font-mono"><a href="/goods-receipts/{{ invoice.goods_receipt_note.id }}" class="text-ink underline">{{ invoice.goods_receipt_note.document_no }}</a></td>
+                <td class="py-3 pr-3 text-right">{{ invoice.invoiced_quantity }}</td>
+                <td class="py-3 pr-3 text-right">{{ "₹{:,.2f}".format(invoice.invoiced_value) }}</td>
+                <td class="py-3 pr-3 text-right">{{ "₹{:,.2f}".format(invoice.payable_amount) }}</td>
+                <td class="py-3 pr-3 text-right {% if invoice.disputed_amount != 0 %}text-statusRed{% endif %}">
+                    {% if invoice.disputed_amount != 0 %}{{ "₹{:,.2f}".format(invoice.disputed_amount) }}{% else %}—{% endif %}
+                </td>
+                <td class="py-3 pr-3">
+                    {% if invoice.status.value == 'MATCHED' %}
+                    <span class="bg-statusGreen text-white px-2 py-1 text-xs">{{ invoice.status.value }}</span>
+                    {% else %}
+                    <span class="bg-statusRed text-white px-2 py-1 text-xs">{{ invoice.status.value }}</span>
+                    {% endif %}
+                </td>
+                <td class="py-3">{{ invoice.credit_note_reference or '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-gray-600">No supplier invoices yet.</p>
+{% endif %}
+{% endblock %}

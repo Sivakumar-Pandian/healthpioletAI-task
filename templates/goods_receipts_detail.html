@@ -68,4 +68,12 @@
         <div class="border border-gray-300 p-4"><span class="block text-gray-600">Quarantined</span><span class="text-statusRed text-xl">{{ quarantined_stock }}</span></div>
     </div>
 </div>
+
+<div class="mt-8 max-w-3xl">
+    {% if supplier_invoice %}
+    <a href="/supplier-invoices/{{ supplier_invoice.id }}" class="text-ink underline">View Supplier Invoice {{ supplier_invoice.document_no }}</a>
+    {% else %}
+    <a href="/supplier-invoices/new?grn_id={{ goods_receipt.id }}" class="bg-ink text-white px-4 py-2 text-sm">Record Supplier Invoice for this GRN</a>
+    {% endif %}
+</div>
 {% endblock %}

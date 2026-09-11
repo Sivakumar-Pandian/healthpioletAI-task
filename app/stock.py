@@ -1,7 +1,7 @@
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models import StockLedgerEntry
+from app.models import GoodsReceiptNote, GrnCorrection, StockLedgerEntry
 
 
 def computed_stock(
@@ -28,3 +28,14 @@ def computed_stock(
 
     quantity_in, quantity_out = query.one()
     return int(quantity_in) - int(quantity_out)
+
+
+def effective_accepted_quantity(db: Session, grn: GoodsReceiptNote):
+    correction = (
+        db.query(GrnCorrection)
+        .filter(GrnCorrection.original_grn_id == grn.id)
+        .first()
+    )
+    if correction:
+        return correction.new_accepted_quantity
+    return grn.accepted_quantity

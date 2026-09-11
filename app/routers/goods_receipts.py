@@ -15,6 +15,7 @@ from app.models import (
     PurchaseOrderStatus,
     StockLedgerEntry,
     StockStatus,
+    SupplierInvoice,
 )
 from app.stock import computed_stock
 
@@ -568,6 +569,11 @@ def goods_receipt_detail(
         {
             "goods_receipt": receipt,
             "correction": get_correction_for_receipt(db, receipt.id),
+            "supplier_invoice": (
+                db.query(SupplierInvoice)
+                .filter(SupplierInvoice.grn_id == receipt.id)
+                .first()
+            ),
             "usable_stock": computed_stock(
                 db,
                 location_id=purchase_order.delivery_location_id,

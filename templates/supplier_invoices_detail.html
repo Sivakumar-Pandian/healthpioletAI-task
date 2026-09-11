@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav class="text-sm text-gray-600 mb-2" aria-label="Breadcrumb">
+    <a href="/supplier-invoices" class="underline">Supplier Invoices</a>
+    <span class="mx-2">/</span>
+    <span>{{ supplier_invoice.document_no }}</span>
+</nav>
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Supplier Invoice <span class="font-mono text-xl">{{ supplier_invoice.document_no }}</span></h1>
+    <a href="/supplier-invoices" class="text-ink underline text-sm">Back to Supplier Invoices</a>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 max-w-3xl border-y border-ink text-sm mb-8">
+    <div class="py-4 border-b border-gray-300">
+        <span class="block text-gray-600">Ordered Qty from PO</span>
+        <span class="font-mono text-2xl">{{ supplier_invoice.purchase_order.quantity }}</span>
+    </div>
+    <div class="py-4 border-b border-gray-300">
+        <span class="block text-gray-600">Received-Accepted Qty from GRN</span>
+        <span class="font-mono text-2xl">{{ effective_accepted }}</span>
+    </div>
+    <div class="py-4 border-b border-gray-300">
+        <span class="block text-gray-600">Invoiced Qty</span>
+        <span class="font-mono text-2xl {% if supplier_invoice.status.value == 'DISPUTED' %}text-statusRed{% endif %}">{{ supplier_invoice.invoiced_quantity }}</span>
+    </div>
+</div>
+
+<dl class="grid grid-cols-1 md:grid-cols-2 max-w-3xl border-t border-ink text-sm">
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Purchase Order</dt><dd class="font-mono"><a href="/purchase-orders/{{ supplier_invoice.purchase_order.id }}" class="underline">{{ supplier_invoice.purchase_order.document_no }}</a></dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Goods Receipt</dt><dd class="font-mono"><a href="/goods-receipts/{{ supplier_invoice.goods_receipt_note.id }}" class="underline">{{ supplier_invoice.goods_receipt_note.document_no }}</a></dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Invoiced Quantity</dt><dd>{{ supplier_invoice.invoiced_quantity }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Invoiced Value</dt><dd>{{ "₹{:,.2f}".format(supplier_invoice.invoiced_value) }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Payable Amount</dt><dd>{{ "₹{:,.2f}".format(supplier_invoice.payable_amount) }}</dd></div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Disputed Amount</dt><dd class="{% if supplier_invoice.disputed_amount != 0 %}text-statusRed{% endif %}">{{ "₹{:,.2f}".format(supplier_invoice.disputed_amount) }}</dd></div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Status</dt>
+        <dd>
+            {% if supplier_invoice.status.value == 'MATCHED' %}
+            <span class="bg-statusGreen text-white px-2 py-1 text-xs">{{ supplier_invoice.status.value }}</span>
+            {% else %}
+            <span class="bg-statusRed text-white px-2 py-1 text-xs">{{ supplier_invoice.status.value }}</span>
+            {% endif %}
+        </dd>
+    </div>
+    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Created At</dt><dd>{{ supplier_invoice.created_at.strftime('%Y-%m-%d %H:%M') }}</dd></div>
+    <div class="border-b border-gray-300 py-3 md:col-span-2"><dt class="text-gray-600">Credit Note Reference</dt><dd>{{ supplier_invoice.credit_note_reference or '—' }}</dd></div>
+</dl>
+
+{% if supplier_invoice.status.value == 'DISPUTED' and not supplier_invoice.credit_note_reference %}
+<form action="/supplier-invoices/{{ supplier_invoice.id }}/resolve" method="post" class="max-w-xl mt-8 space-y-4">
+    <label class="block text-sm">
+        <span class="block mb-1">Credit Note Reference</span>
+        <input name="credit_note_reference" type="text" class="w-full border border-ink px-3 py-2 bg-paper" required>
+    </label>
+    <button type="submit" class="bg-ink text-white px-4 py-2 text-sm">Save Credit Note</button>
+</form>
+{% endif %}
+{% endblock %}
