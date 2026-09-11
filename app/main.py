@@ -10,6 +10,7 @@ from app.context import header_context, success_redirect
 from app.models import (
     AppUser,
     GoodsReceiptNote,
+    GrnCorrection,
     Location,
     LocationType,
     PurchaseOrder,
@@ -155,7 +156,13 @@ def master_data(request: Request, db: Session = Depends(get_db)):
 
 @app.post("/demo/reset")
 def reset_demo_data(db: Session = Depends(get_db)):
-    for model in (StockLedgerEntry, GoodsReceiptNote, PurchaseOrder, Requisition):
+    for model in (
+        StockLedgerEntry,
+        GrnCorrection,
+        GoodsReceiptNote,
+        PurchaseOrder,
+        Requisition,
+    ):
         db.query(model).delete(synchronize_session=False)
     db.commit()
     return RedirectResponse(

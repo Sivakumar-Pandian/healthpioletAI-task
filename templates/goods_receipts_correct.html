@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Correct GRN <span class="font-mono text-xl">{{ goods_receipt.document_no }}</span></h1>
+    <div class="flex gap-4 text-sm">
+        <a href="/goods-receipts/{{ goods_receipt.id }}" class="text-ink underline">Back to Goods Receipt</a>
+        <a href="/purchase-orders/{{ purchase_order.id }}" class="text-ink underline">Back to Purchase Order</a>
+    </div>
+</div>
+
+{% if error_messages %}
+<div role="alert" class="border border-statusRed text-statusRed px-4 py-3 max-w-3xl mb-6 text-sm">
+    <p class="font-medium mb-1">Please check the correction details.</p>
+    <ul class="list-disc ml-5 mt-1 space-y-1">
+        {% for message in error_messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="border-y border-ink max-w-3xl grid grid-cols-1 md:grid-cols-3 text-sm mb-8">
+    <div class="py-3 border-b border-gray-300"><span class="block text-gray-600">Goods Receipt</span><span class="font-mono">{{ goods_receipt.document_no }}</span></div>
+    <div class="py-3 border-b border-gray-300"><span class="block text-gray-600">Purchase Order</span><span class="font-mono">{{ purchase_order.document_no }}</span></div>
+    <div class="py-3 border-b border-gray-300"><span class="block text-gray-600">Ordered Quantity</span>{{ purchase_order.quantity }} {{ purchase_order.product.unit }}</div>
+    <div class="py-3 border-b border-gray-300"><span class="block text-gray-600">Physical Quantity</span>{{ goods_receipt.physical_quantity }}</div>
+    <div class="py-3 border-b border-gray-300"><span class="block text-gray-600">Batch Number</span><span class="font-mono">{{ goods_receipt.batch_number }}</span></div>
+    <div class="py-3 border-b border-gray-300"><span class="block text-gray-600">Product</span>{{ purchase_order.product.name }}</div>
+    <div class="py-3"><span class="block text-gray-600">Current Accepted</span>{{ goods_receipt.accepted_quantity }}</div>
+    <div class="py-3"><span class="block text-gray-600">Current Damaged</span>{{ goods_receipt.damaged_quantity }}</div>
+    <div class="py-3"><span class="block text-gray-600">Current Missing</span>{{ goods_receipt.missing_quantity }}</div>
+</div>
+
+<form id="grn-correction-form" action="/goods-receipts/{{ goods_receipt.id }}/correct" method="post" class="max-w-xl space-y-5">
+    <input id="corrected-by-id" type="hidden" name="corrected_by_id">
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <label class="block text-sm">
+            <span class="block mb-1">New Accepted Quantity</span>
+            <input id="accepted-quantity" name="accepted_quantity" type="number" min="0" value="{{ form_data.accepted_quantity }}" class="w-full border border-ink px-3 py-2 bg-paper" required>
+        </label>
+        <label class="block text-sm">
+            <span class="block mb-1">New Damaged Quantity</span>
+            <input id="damaged-quantity" name="damaged_quantity" type="number" min="0" value="{{ form_data.damaged_quantity }}" class="w-full border border-ink px-3 py-2 bg-paper" required>
+        </label>
+        <label class="block text-sm">
+            <span class="block mb-1">New Missing Quantity</span>
+            <input id="missing-quantity" name="missing_quantity" type="number" min="0" value="{{ form_data.missing_quantity }}" class="w-full border border-ink px-3 py-2 bg-paper" required>
+        </label>
+    </div>
+
+    <label class="block text-sm">
+        <span class="block mb-1">Reason</span>
+        <textarea name="reason" rows="3" class="w-full border border-ink px-3 py-2 bg-paper" required>{{ form_data.reason }}</textarea>
+    </label>
+
+    <div id="quantity-summary" class="text-sm text-gray-600" aria-live="polite">Enter the quantities to see the reconciliation.</div>
+    <ul id="validation-list" class="space-y-1 text-sm" aria-live="polite"></ul>
+
+    <button type="submit" class="bg-ink text-white px-4 py-2 text-sm">Post Correction</button>
+</form>
+
+<script>
+const correctedByInput = document.getElementById('corrected-by-id');
+const actingAsSelect = document.getElementById('acting-as-select');
+const acceptedInput = document.getElementById('accepted-quantity');
+const damagedInput = document.getElementById('damaged-quantity');
+const missingInput = document.getElementById('missing-quantity');
+const summary = document.getElementById('quantity-summary');
+const validationList = document.getElementById('validation-list');
+const correctionForm = document.getElementById('grn-correction-form');
+const physicalQuantity = {{ goods_receipt.physical_quantity }};
+const orderedQuantity = {{ purchase_order.quantity }};
+const quantityInputs = [acceptedInput, damagedInput, missingInput];
+
+function syncCorrectedBy() {
+    correctedByInput.value = actingAsSelect.value;
+}
+
+function numberValue(input) {
+    return Number(input.value || 0);
+}
+
+function validateQuantities() {
+    const accepted = numberValue(acceptedInput);
+    const damaged = numberValue(damagedInput);
+    const missing = numberValue(missingInput);
+    const breakdown = accepted + damaged;
+    const hasInput = quantityInputs.some((input) => input.value.trim() !== '');
+
+    validationList.replaceChildren();
+    if (!hasInput) {
+        summary.textContent = 'Enter the quantities to see the reconciliation.';
+        return false;
+    }
+
+    const checks = [
+        {
+            valid: breakdown === physicalQuantity,
+            message: breakdown === physicalQuantity
+                ? `Accepted (${accepted}) + damaged (${damaged}) = physical (${physicalQuantity}).`
+                : `Please fix the correction quantities: accepted (${accepted}) + damaged (${damaged}) = ${breakdown}, but physical is ${physicalQuantity}.`,
+        },
+        {
+            valid: physicalQuantity + missing === orderedQuantity,
+            message: physicalQuantity + missing === orderedQuantity
+                ? `Physical (${physicalQuantity}) + missing (${missing}) matches the PO quantity (${orderedQuantity}).`
+                : `Please fix the PO reconciliation: physical (${physicalQuantity}) + missing (${missing}) = ${physicalQuantity + missing}, but the PO quantity is ${orderedQuantity}.`,
+        },
+    ];
+
+    summary.textContent = `Physical: ${physicalQuantity} | Accepted: ${accepted} | Damaged: ${damaged} | Missing: ${missing}`;
+    checks.forEach((check) => {
+        const item = document.createElement('li');
+        item.textContent = `${check.valid ? '✓' : '•'} ${check.message}`;
+        item.className = check.valid ? 'text-statusGreen' : 'text-statusRed';
+        validationList.appendChild(item);
+    });
+    return checks.every((check) => check.valid);
+}
+
+syncCorrectedBy();
+actingAsSelect.addEventListener('change', syncCorrectedBy);
+quantityInputs.forEach((input) => {
+    input.addEventListener('input', validateQuantities);
+});
+
+correctionForm.addEventListener('submit', (event) => {
+    syncCorrectedBy();
+    if (!validateQuantities()) {
+        event.preventDefault();
+        validationList.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+});
+validateQuantities();
+</script>
+{% endblock %}

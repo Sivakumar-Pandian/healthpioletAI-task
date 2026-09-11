@@ -8,7 +8,12 @@
 </nav>
 <div class="flex items-center justify-between mb-6">
     <h1 class="font-serif text-2xl">Goods Receipt <span class="font-mono text-xl">{{ goods_receipt.document_no }}</span></h1>
-    <a href="/goods-receipts" class="text-ink underline text-sm">Back to Goods Receipts</a>
+    <div class="flex gap-4 text-sm">
+        {% if not correction %}
+        <a href="/goods-receipts/{{ goods_receipt.id }}/correct" class="bg-ink text-white px-4 py-2">Correct this GRN</a>
+        {% endif %}
+        <a href="/goods-receipts" class="text-ink underline py-2">Back to Goods Receipts</a>
+    </div>
 </div>
 
 <p class="font-mono text-sm mb-6"><a href="/requisitions/{{ goods_receipt.purchase_order.requisition.id }}" class="text-ink underline">{{ goods_receipt.purchase_order.requisition.document_no }}</a> → <a href="/purchase-orders/{{ goods_receipt.purchase_order.id }}" class="text-ink underline">{{ goods_receipt.purchase_order.document_no }}</a> → {{ goods_receipt.document_no }}</p>
@@ -27,6 +32,34 @@
     <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Posted By</dt><dd>{{ goods_receipt.posted_by.name }}</dd></div>
     <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Posted At</dt><dd>{{ goods_receipt.posted_at.strftime('%Y-%m-%d %H:%M') }}</dd></div>
 </dl>
+
+{% if correction %}
+<div class="mt-8 max-w-3xl">
+    <h2 class="font-serif text-xl mb-3">Correction</h2>
+    <div class="border-y border-ink text-sm">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 border-b border-gray-300 py-3 line-through text-gray-500">
+            <div><span class="block font-medium no-underline">Original · Superseded</span></div>
+            <div><span class="block text-gray-600">Accepted</span>{{ correction.old_accepted_quantity }}</div>
+            <div><span class="block text-gray-600">Damaged</span>{{ correction.old_damaged_quantity }}</div>
+            <div><span class="block text-gray-600">Missing</span>{{ correction.old_missing_quantity }}</div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 py-3">
+            <div><span class="block font-medium">Corrected</span></div>
+            <div><span class="block text-gray-600">Accepted</span>{{ correction.new_accepted_quantity }}</div>
+            <div><span class="block text-gray-600">Damaged</span>{{ correction.new_damaged_quantity }}</div>
+            <div><span class="block text-gray-600">Missing</span>{{ correction.new_missing_quantity }}</div>
+        </div>
+        <div class="border-t border-gray-300 py-3">
+            <span class="block text-gray-600">Reason</span>
+            {{ correction.reason }}
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 border-t border-gray-300 py-3">
+            <div><span class="block text-gray-600">Corrected By</span>{{ correction.corrected_by.name }}</div>
+            <div><span class="block text-gray-600">Corrected At</span>{{ correction.corrected_at.strftime('%Y-%m-%d %H:%M') }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="mt-8 max-w-3xl">
     <h2 class="font-serif text-xl mb-3">Computed Stock for this Batch</h2>

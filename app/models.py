@@ -150,6 +150,27 @@ class GoodsReceiptNote(Base):
     posted_by = relationship("AppUser")
 
 
+class GrnCorrection(Base):
+    __tablename__ = "grn_corrections"
+
+    id = Column(Integer, primary_key=True)
+    original_grn_id = Column(
+        Integer, ForeignKey("goods_receipt_notes.id"), nullable=False
+    )
+    old_accepted_quantity = Column(Integer, nullable=False)
+    old_damaged_quantity = Column(Integer, nullable=False)
+    old_missing_quantity = Column(Integer, nullable=False)
+    new_accepted_quantity = Column(Integer, nullable=False)
+    new_damaged_quantity = Column(Integer, nullable=False)
+    new_missing_quantity = Column(Integer, nullable=False)
+    reason = Column(String, nullable=False)
+    corrected_by_id = Column(Integer, ForeignKey("app_users.id"), nullable=False)
+    corrected_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    original_grn = relationship("GoodsReceiptNote")
+    corrected_by = relationship("AppUser")
+
+
 class StockLedgerEntry(Base):
     __tablename__ = "stock_ledger_entries"
 
