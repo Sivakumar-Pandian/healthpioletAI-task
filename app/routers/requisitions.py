@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.context import header_context
+from app.context import header_context, success_redirect
 from app.database import get_db
 from app.document_numbers import next_document_number
 from app.models import (
@@ -27,9 +27,19 @@ def get_requisition_or_404(db: Session, requisition_id: int):
 
 
 @router.get("", response_class=HTMLResponse)
-def list_requisitions(request: Request, db: Session = Depends(get_db)):
+def list_requisitions(
+    request: Request,
+    status: str | None = None,
+    db: Session = Depends(get_db),
+):
     context = header_context(db)
-    context["requisitions"] = db.query(Requisition).order_by(Requisition.id).all()
+    query = db.query(Requisition).order_by(Requisition.id)
+    selected_status = status.upper() if status else None
+    valid_statuses = {item.value for item in RequisitionStatus}
+    if selected_status in valid_statuses:
+        query = query.filter(Requisition.status == RequisitionStatus(selected_status))
+    context["requisitions"] = query.all()
+    context["selected_status"] = selected_status if selected_status in valid_statuses else None
     return templates.TemplateResponse(request, "requisitions_list.html", context)
 
 
@@ -72,7 +82,10 @@ def create_requisition(
     )
     db.add(requisition)
     db.commit()
-    return RedirectResponse(url="/requisitions", status_code=303)
+    return RedirectResponse(
+        url=success_redirect("/requisitions", f"{requisition.document_no} created"),
+        status_code=303,
+    )
 
 
 @router.post("/{requisition_id}/approve")
@@ -81,7 +94,10 @@ def approve_requisition(requisition_id: int, db: Session = Depends(get_db)):
     if requisition.status == RequisitionStatus.SUBMITTED:
         requisition.status = RequisitionStatus.APPROVED
         db.commit()
-    return RedirectResponse(url="/requisitions", status_code=303)
+    return RedirectResponse(
+        url=success_redirect("/requisitions", f"{requisition.document_no} approved"),
+        status_code=303,
+    )
 
 
 @router.post("/{requisition_id}/reject")
@@ -90,7 +106,10 @@ def reject_requisition(requisition_id: int, db: Session = Depends(get_db)):
     if requisition.status == RequisitionStatus.SUBMITTED:
         requisition.status = RequisitionStatus.REJECTED
         db.commit()
-    return RedirectResponse(url="/requisitions", status_code=303)
+    return RedirectResponse(
+        url=success_redirect("/requisitions", f"{requisition.document_no} rejected"),
+        status_code=303,
+    )
 
 
 @router.get("/{requisition_id}", response_class=HTMLResponse)

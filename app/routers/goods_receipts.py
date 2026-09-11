@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.context import header_context
+from app.context import header_context, success_redirect
 from app.database import get_db
 from app.document_numbers import next_document_number
 from app.models import (
@@ -333,7 +333,10 @@ def create_goods_receipt(
         else PurchaseOrderStatus.PARTIALLY_RECEIVED
     )
     db.commit()
-    return RedirectResponse(url="/goods-receipts", status_code=303)
+    return RedirectResponse(
+        url=success_redirect("/goods-receipts", f"{receipt.document_no} posted"),
+        status_code=303,
+    )
 
 
 @router.get("/{receipt_id}", response_class=HTMLResponse)

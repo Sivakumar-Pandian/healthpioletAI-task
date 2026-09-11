@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
+<nav class="text-sm text-gray-600 mb-2" aria-label="Breadcrumb">
+    <a href="/purchase-orders" class="underline">Purchase Orders</a>
+    <span class="mx-2">/</span>
+    <span>{{ purchase_order.document_no }}</span>
+</nav>
 <div class="flex items-center justify-between mb-6">
     <h1 class="font-serif text-2xl">Purchase Order <span class="font-mono text-xl">{{ purchase_order.document_no }}</span></h1>
     <a href="/purchase-orders" class="text-ink underline text-sm">Back to Purchase Orders</a>

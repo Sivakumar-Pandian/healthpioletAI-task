@@ -3,7 +3,10 @@
 {% block content %}
 <div class="flex items-center justify-between mb-6">
     <h1 class="font-serif text-2xl">Receive Goods</h1>
-    <a href="/purchase-orders/{{ purchase_order.id }}" class="text-ink underline text-sm">Back to Purchase Order</a>
+    <div class="flex gap-4 text-sm">
+        <a href="/goods-receipts" class="text-ink underline">← Back to list</a>
+        <a href="/purchase-orders/{{ purchase_order.id }}" class="text-ink underline">Back to Purchase Order</a>
+    </div>
 </div>
 
 {% if error_messages %}

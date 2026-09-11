@@ -64,7 +64,7 @@
             <nav class="w-56 border-r border-gray-300 p-4 bg-paper">
                 <ul class="space-y-2">
                     <li>
-                        <a href="#" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                        <a href="/" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/' %}border-l-4 border-amber bg-gray-100{% endif %}">
                             Dashboard
                         </a>
                     </li>
@@ -104,22 +104,67 @@
                         </a>
                     </li>
                 </ul>
+                <div class="border-t border-gray-300 mt-8 pt-4">
+                    <form action="/demo/reset" method="post" onsubmit="return confirm('Reset all demo transactions? Products, suppliers, locations, and users will be kept.');">
+                        <button type="submit" class="border border-statusRed text-statusRed px-3 py-2 text-xs w-full">Reset Demo Data</button>
+                    </form>
+                </div>
             </nav>
             
             <!-- Main content -->
             <main class="flex-1 p-6">
+                {% if request.query_params.get('success') %}
+                <div id="flash-success" class="bg-statusGreen/10 border border-statusGreen text-statusGreen px-4 py-2 mb-6 flex items-center justify-between" role="status">
+                    <span>{{ request.query_params.get('success') }}</span>
+                    <button type="button" class="ml-4 text-lg leading-none" aria-label="Dismiss message" onclick="this.parentElement.remove()">×</button>
+                </div>
+                {% endif %}
                 {% block content %}{% endblock %}
             </main>
         </div>
     </div>
     <script>
+    const dashboardPath = window.location.pathname === '/';
+    const actingAsSelect = document.getElementById('acting-as-select');
+    const locationSelect = document.getElementById('location-select');
+
     for (const select of document.querySelectorAll('#location-select, #acting-as-select')) {
         const storageKey = `healthpilot:${select.id}`;
         const savedValue = localStorage.getItem(storageKey);
         if (savedValue && select.querySelector(`option[value="${savedValue}"]`)) {
             select.value = savedValue;
         }
-        select.addEventListener('change', () => localStorage.setItem(storageKey, select.value));
+        select.addEventListener('change', () => {
+            localStorage.setItem(storageKey, select.value);
+            if (dashboardPath) {
+                const params = new URLSearchParams(window.location.search);
+                if (select.id === 'acting-as-select') {
+                    params.set('acting_as_id', select.value);
+                }
+                if (select.id === 'location-select') {
+                    params.set('location_id', select.value);
+                }
+                window.location.href = `/?${params.toString()}`;
+            }
+        });
+    }
+
+    if (dashboardPath) {
+        const params = new URLSearchParams(window.location.search);
+        const savedActingAs = localStorage.getItem('healthpilot:acting-as-select');
+        const savedLocation = localStorage.getItem('healthpilot:location-select');
+        let dashboardContextChanged = false;
+        if (!params.has('acting_as_id') && savedActingAs && actingAsSelect.querySelector(`option[value="${savedActingAs}"]`)) {
+            params.set('acting_as_id', savedActingAs);
+            dashboardContextChanged = true;
+        }
+        if (!params.has('location_id') && savedLocation && locationSelect.querySelector(`option[value="${savedLocation}"]`)) {
+            params.set('location_id', savedLocation);
+            dashboardContextChanged = true;
+        }
+        if (dashboardContextChanged) {
+            window.location.replace(`/?${params.toString()}`);
+        }
     }
     </script>
 </body>

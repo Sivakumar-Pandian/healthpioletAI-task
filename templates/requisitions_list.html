@@ -6,6 +6,12 @@
     <a href="/requisitions/new" class="bg-ink text-white px-4 py-2 text-sm">New Requisition</a>
 </div>
 
+{% if selected_status %}
+<div class="text-sm text-gray-600 mb-4">
+    Showing: {{ selected_status }} only — <a href="/requisitions" class="underline">clear filter</a>
+</div>
+{% endif %}
+
 {% if requisitions %}
 <div class="overflow-x-auto">
     <table class="w-full border-collapse text-sm">
@@ -23,7 +29,7 @@
         </thead>
         <tbody>
             {% for requisition in requisitions %}
-            <tr class="border-b border-gray-300">
+            <tr class="border-b border-gray-300 cursor-pointer hover:bg-ink/5" data-href="/requisitions/{{ requisition.id }}" onclick="if (!event.target.closest('a, button, form')) window.location.href=this.dataset.href">
                 <td class="py-3 pr-3 font-mono"><a class="text-ink underline" href="/requisitions/{{ requisition.id }}">{{ requisition.document_no }}</a></td>
                 <td class="py-3 pr-3">{{ requisition.location.name }}</td>
                 <td class="py-3 pr-3">{{ requisition.product.name }}</td>

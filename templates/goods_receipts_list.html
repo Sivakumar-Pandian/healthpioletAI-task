@@ -23,7 +23,7 @@
         </thead>
         <tbody>
             {% for receipt in goods_receipts %}
-            <tr class="border-b border-gray-300">
+            <tr class="border-b border-gray-300 cursor-pointer hover:bg-ink/5" data-href="/goods-receipts/{{ receipt.id }}" onclick="if (!event.target.closest('a, button, form')) window.location.href=this.dataset.href">
                 <td class="py-3 pr-3 font-mono"><a href="/goods-receipts/{{ receipt.id }}" class="text-ink underline">{{ receipt.document_no }}</a></td>
                 <td class="py-3 pr-3 font-mono"><a href="/purchase-orders/{{ receipt.purchase_order.id }}" class="text-ink underline">{{ receipt.purchase_order.document_no }}</a></td>
                 <td class="py-3 pr-3 font-mono">{{ receipt.batch_number }}</td>

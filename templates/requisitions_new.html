@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="font-serif text-2xl mb-6">New Requisition</h1>
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">New Requisition</h1>
+    <a href="/requisitions" class="text-ink underline text-sm">← Back to list</a>
+</div>
 
 <form action="/requisitions/new" method="post" class="max-w-xl space-y-5">
     <input id="location-id" type="hidden" name="location_id">

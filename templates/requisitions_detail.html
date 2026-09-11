@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
+<nav class="text-sm text-gray-600 mb-2" aria-label="Breadcrumb">
+    <a href="/requisitions" class="underline">Requisitions</a>
+    <span class="mx-2">/</span>
+    <span>{{ requisition.document_no }}</span>
+</nav>
 <div class="flex items-center justify-between mb-6">
     <h1 class="font-serif text-2xl">Requisition <span class="font-mono text-xl">{{ requisition.document_no }}</span></h1>
     <a href="/requisitions" class="text-ink underline text-sm">Back to Requisitions</a>

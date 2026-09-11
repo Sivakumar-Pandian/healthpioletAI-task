@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="font-serif text-2xl mb-2">New Purchase Order</h1>
+<div class="flex items-center justify-between mb-2">
+    <h1 class="font-serif text-2xl">New Purchase Order</h1>
+    <a href="/purchase-orders" class="text-ink underline text-sm">← Back to list</a>
+</div>
 <p class="text-gray-600 mb-6">From requisition <span class="font-mono">{{ requisition.document_no }}</span></p>
 
 <form action="/purchase-orders/new" method="post" class="max-w-xl space-y-5">

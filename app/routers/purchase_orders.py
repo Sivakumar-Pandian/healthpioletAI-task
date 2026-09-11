@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.context import header_context
+from app.context import header_context, success_redirect
 from app.database import get_db
 from app.document_numbers import next_document_number
 from app.models import (
@@ -97,7 +97,10 @@ def create_purchase_order(
     )
     db.add(purchase_order)
     db.commit()
-    return RedirectResponse(url="/purchase-orders", status_code=303)
+    return RedirectResponse(
+        url=success_redirect("/purchase-orders", f"{purchase_order.document_no} created"),
+        status_code=303,
+    )
 
 
 @router.get("/{purchase_order_id}", response_class=HTMLResponse)

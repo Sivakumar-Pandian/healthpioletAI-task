@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from urllib.parse import quote_plus
 
 from app.models import AppUser, Location, UserRole
 
@@ -13,3 +14,8 @@ def header_context(db: Session):
             (UserRole.RECEIVING_STAFF, "Receiving Staff"),
         ],
     }
+
+
+def success_redirect(path: str, message: str):
+    separator = "&" if "?" in path else "?"
+    return f"{path}{separator}success={quote_plus(message)}"

@@ -20,7 +20,7 @@
         </thead>
         <tbody>
             {% for purchase_order in purchase_orders %}
-            <tr class="border-b border-gray-300">
+            <tr class="border-b border-gray-300 cursor-pointer hover:bg-ink/5" data-href="/purchase-orders/{{ purchase_order.id }}" onclick="if (!event.target.closest('a, button, form')) window.location.href=this.dataset.href">
                 <td class="py-3 pr-3 font-mono"><a href="/purchase-orders/{{ purchase_order.id }}" class="text-ink underline">{{ purchase_order.document_no }}</a></td>
                 <td class="py-3 pr-3 font-mono"><a href="/requisitions/{{ purchase_order.requisition.id }}" class="text-ink underline">{{ purchase_order.requisition.document_no }}</a></td>
                 <td class="py-3 pr-3">{{ purchase_order.supplier.name }}</td>
