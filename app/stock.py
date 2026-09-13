@@ -1,7 +1,7 @@
-from sqlalchemy import func
+from sqlalchemy import func, distinct
 from sqlalchemy.orm import Session
 
-from app.models import GoodsReceiptNote, GrnCorrection, StockLedgerEntry
+from app.models import GoodsReceiptNote, GrnCorrection, StockLedgerEntry, StockStatus
 
 
 def computed_stock(
@@ -39,3 +39,27 @@ def effective_accepted_quantity(db: Session, grn: GoodsReceiptNote):
     if correction:
         return correction.new_accepted_quantity
     return grn.accepted_quantity
+
+
+def usable_batches_at(db: Session, location_id: int, product_id: int = None):
+    """Return list of (batch_number, quantity_available) for USABLE stock > 0 at location."""
+    query = (
+        db.query(distinct(StockLedgerEntry.batch_number))
+        .filter(StockLedgerEntry.location_id == location_id)
+    )
+    if product_id is not None:
+        query = query.filter(StockLedgerEntry.product_id == product_id)
+
+    batches = [row[0] for row in query.all()]
+    result = []
+    for batch in sorted(batches):
+        qty = computed_stock(
+            db,
+            location_id=location_id,
+            product_id=product_id,
+            batch_number=batch,
+            stock_status=StockStatus.USABLE,
+        )
+        if qty > 0:
+            result.append((batch, qty))
+    return result

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav class="text-sm text-gray-600 mb-2" aria-label="Breadcrumb">
+    <a href="/transfers" class="underline">Stock Transfers</a>
+    <span class="mx-2">/</span>
+    <span>{{ transfer.document_no }}</span>
+</nav>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Transfer <span class="font-mono text-xl">{{ transfer.document_no }}</span></h1>
+    <div class="flex gap-4 items-center text-sm">
+        {% if transfer.status.value == 'DISPATCHED' %}
+        <form action="/transfers/{{ transfer.id }}/receive" method="post" class="inline flex gap-2 items-center">
+            <input id="receive-by-detail" type="hidden" name="received_by_id">
+            <button type="submit" id="receive-btn"
+                class="bg-statusGreen text-white px-4 py-2">
+                Confirm Receipt
+            </button>
+        </form>
+        {% endif %}
+        <a href="/transfers" class="text-ink underline py-2">Back to Transfers</a>
+    </div>
+</div>
+
+<dl class="grid grid-cols-1 md:grid-cols-2 max-w-3xl border-t border-ink text-sm">
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Document</dt>
+        <dd class="font-mono">{{ transfer.document_no }}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Status</dt>
+        <dd>
+            {% if transfer.status.value == 'RECEIVED' %}
+            <span class="bg-statusGreen text-white px-2 py-1 text-xs">RECEIVED</span>
+            {% else %}
+            <span class="bg-amber text-white px-2 py-1 text-xs">DISPATCHED</span>
+            {% endif %}
+        </dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Source Location</dt>
+        <dd>{{ transfer.source_location.name }}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Destination Location</dt>
+        <dd>{{ transfer.destination_location.name }}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Product</dt>
+        <dd>{{ transfer.product.name }}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Batch Number</dt>
+        <dd class="font-mono">{{ transfer.batch_number }}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Quantity</dt>
+        <dd>{{ transfer.quantity }}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Dispatched By</dt>
+        <dd>{{ transfer.dispatched_by.name }}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Dispatched At</dt>
+        <dd>{{ transfer.dispatched_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Received By</dt>
+        <dd>{% if transfer.received_by %}{{ transfer.received_by.name }}{% else %}—{% endif %}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Received At</dt>
+        <dd>{% if transfer.received_at %}{{ transfer.received_at.strftime('%Y-%m-%d %H:%M') }}{% else %}—{% endif %}</dd>
+    </div>
+</dl>
+
+<script>
+// Inject acting-as into the receive form on the detail page
+const receiveBtn = document.getElementById('receive-btn');
+const receiveByInput = document.getElementById('receive-by-detail');
+const actingAsSelect = document.getElementById('acting-as-select');
+if (receiveBtn && receiveByInput && actingAsSelect) {
+    receiveBtn.addEventListener('click', function() {
+        receiveByInput.value = actingAsSelect.value;
+    });
+}
+</script>
+{% endblock %}

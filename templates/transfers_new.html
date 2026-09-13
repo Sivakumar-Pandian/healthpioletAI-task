@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">New Stock Transfer</h1>
+    <a href="/transfers" class="text-ink underline text-sm">← Back to list</a>
+</div>
+
+{% if error_messages %}
+<div role="alert" class="border border-statusRed text-statusRed px-4 py-3 max-w-xl mb-6 text-sm">
+    <p class="font-medium mb-1">Please check the transfer details.</p>
+    <ul class="list-disc ml-5 mt-1 space-y-1">
+        {% for message in error_messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<form id="transfer-form" action="/transfers/new" method="post" class="max-w-xl space-y-5">
+    <input id="dispatched-by-id" type="hidden" name="dispatched_by_id">
+
+    <label class="block text-sm">
+        <span class="block mb-1">Source Location</span>
+        <select id="source-location-select" name="source_location_id"
+            class="w-full border border-ink px-3 py-2 bg-paper" required>
+            <option value="">— select source —</option>
+            {% for loc in locations %}
+            <option value="{{ loc.id }}"
+                {% if form_data.source_location_id|string == loc.id|string %}selected{% endif %}>
+                {{ loc.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label class="block text-sm">
+        <span class="block mb-1">Product</span>
+        <select id="product-select" name="product_id"
+            class="w-full border border-ink px-3 py-2 bg-paper" required>
+            <option value="">— select product —</option>
+            {% for product in products %}
+            <option value="{{ product.id }}"
+                {% if form_data.product_id|string == product.id|string %}selected{% endif %}>
+                {{ product.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    {# Batch picker — populated server-side after source+product are chosen #}
+    <label class="block text-sm">
+        <span class="block mb-1">Batch</span>
+        {% if batches %}
+        <select id="batch-select" name="batch_number" class="w-full border border-ink px-3 py-2 bg-paper font-mono" required>
+            <option value="">— select batch —</option>
+            {% for batch_no, qty_available in batches %}
+            <option value="{{ batch_no }}"
+                data-max="{{ qty_available }}"
+                {% if form_data.batch_number == batch_no %}selected{% endif %}>
+                {{ batch_no }} ({{ qty_available }} available)
+            </option>
+            {% endfor %}
+        </select>
+        {% else %}
+        <p class="text-gray-500 text-xs mt-1">
+            {% if form_data.source_location_id and form_data.product_id %}
+            No usable stock found for the selected source and product.
+            {% else %}
+            Select a source location and product above, then click <strong>Load Batches</strong>.
+            {% endif %}
+        </p>
+        <select id="batch-select" name="batch_number" class="w-full border border-ink px-3 py-2 bg-paper font-mono" disabled>
+            <option value="">— no batches available —</option>
+        </select>
+        {% endif %}
+    </label>
+
+    {# Reload form to repopulate batches server-side #}
+    <div class="text-sm">
+        <button type="button" id="load-batches-btn"
+            class="border border-ink px-3 py-2 text-ink text-sm">
+            Load Batches
+        </button>
+        <span class="text-gray-500 ml-2">Reload batch options for the selected source &amp; product</span>
+    </div>
+
+    <label class="block text-sm">
+        <span class="block mb-1">Destination Location</span>
+        <select id="destination-select" name="destination_location_id"
+            class="w-full border border-ink px-3 py-2 bg-paper" required>
+            <option value="">— select destination —</option>
+            {% for loc in locations %}
+            <option value="{{ loc.id }}"
+                {% if form_data.destination_location_id|string == loc.id|string %}selected{% endif %}>
+                {{ loc.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label class="block text-sm">
+        <span class="block mb-1">Quantity</span>
+        <input id="qty-input" name="quantity" type="number" min="1"
+            value="{{ form_data.quantity }}"
+            class="w-full border border-ink px-3 py-2 bg-paper" required>
+        <span id="qty-hint" class="text-xs text-gray-500 mt-1 block"></span>
+    </label>
+
+    <button type="submit" class="bg-ink text-white px-4 py-2 text-sm">Dispatch Transfer</button>
+</form>
+
+<script>
+const sourceSelect = document.getElementById('source-location-select');
+const productSelect = document.getElementById('product-select');
+const loadBatchesBtn = document.getElementById('load-batches-btn');
+const batchSelect = document.getElementById('batch-select');
+const qtyInput = document.getElementById('qty-input');
+const qtyHint = document.getElementById('qty-hint');
+const dispatchedByInput = document.getElementById('dispatched-by-id');
+const actingAsSelect = document.getElementById('acting-as-select');
+
+// Sync dispatched-by-id from acting-as header selector
+function syncDispatchedBy() {
+    dispatchedByInput.value = actingAsSelect.value;
+}
+syncDispatchedBy();
+actingAsSelect.addEventListener('change', syncDispatchedBy);
+
+// Update qty max/hint when batch changes
+function updateQtyHint() {
+    if (!batchSelect) return;
+    const selected = batchSelect.options[batchSelect.selectedIndex];
+    if (selected && selected.dataset.max) {
+        const max = parseInt(selected.dataset.max, 10);
+        qtyInput.max = max;
+        qtyHint.textContent = `Maximum available: ${max}`;
+    } else {
+        qtyInput.removeAttribute('max');
+        qtyHint.textContent = '';
+    }
+}
+if (batchSelect) {
+    batchSelect.addEventListener('change', updateQtyHint);
+    updateQtyHint();
+}
+
+// Load batches: full-page reload with query params
+loadBatchesBtn.addEventListener('click', function() {
+    const src = sourceSelect.value;
+    const prod = productSelect.value;
+    if (!src || !prod) {
+        alert('Please select a source location and product first.');
+        return;
+    }
+    window.location.href = `/transfers/new?source_location_id=${src}&product_id=${prod}`;
+});
+
+// Also trigger reload when source or product changes (convenience)
+sourceSelect.addEventListener('change', function() {
+    const src = sourceSelect.value;
+    const prod = productSelect.value;
+    if (src && prod) {
+        window.location.href = `/transfers/new?source_location_id=${src}&product_id=${prod}`;
+    }
+});
+productSelect.addEventListener('change', function() {
+    const src = sourceSelect.value;
+    const prod = productSelect.value;
+    if (src && prod) {
+        window.location.href = `/transfers/new?source_location_id=${src}&product_id=${prod}`;
+    }
+});
+
+// Filter destination options to exclude source on change
+function syncDestinationOptions() {
+    const srcId = sourceSelect.value;
+    const destSelect = document.getElementById('destination-select');
+    for (const opt of destSelect.options) {
+        opt.disabled = opt.value !== '' && opt.value === srcId;
+    }
+}
+syncDestinationOptions();
+sourceSelect.addEventListener('change', syncDestinationOptions);
+
+// Sync on submit too
+document.getElementById('transfer-form').addEventListener('submit', function() {
+    syncDispatchedBy();
+});
+</script>
+{% endblock %}

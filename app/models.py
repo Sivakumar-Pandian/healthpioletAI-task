@@ -195,6 +195,38 @@ class SupplierInvoice(Base):
     goods_receipt_note = relationship("GoodsReceiptNote")
 
 
+class StockTransferStatus(str, enum.Enum):
+    DISPATCHED = "DISPATCHED"
+    RECEIVED = "RECEIVED"
+
+
+class StockTransfer(Base):
+    __tablename__ = "stock_transfers"
+
+    id = Column(Integer, primary_key=True)
+    document_no = Column(String, unique=True, nullable=False)
+    source_location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
+    destination_location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    batch_number = Column(String, nullable=False)
+    quantity = Column(Integer, nullable=False)
+    status = Column(
+        Enum(StockTransferStatus),
+        nullable=False,
+        default=StockTransferStatus.DISPATCHED,
+    )
+    dispatched_by_id = Column(Integer, ForeignKey("app_users.id"), nullable=False)
+    dispatched_at = Column(DateTime, default=datetime.datetime.utcnow)
+    received_by_id = Column(Integer, ForeignKey("app_users.id"), nullable=True)
+    received_at = Column(DateTime, nullable=True)
+
+    source_location = relationship("Location", foreign_keys=[source_location_id])
+    destination_location = relationship("Location", foreign_keys=[destination_location_id])
+    product = relationship("Product")
+    dispatched_by = relationship("AppUser", foreign_keys=[dispatched_by_id])
+    received_by = relationship("AppUser", foreign_keys=[received_by_id])
+
+
 class StockLedgerEntry(Base):
     __tablename__ = "stock_ledger_entries"
 

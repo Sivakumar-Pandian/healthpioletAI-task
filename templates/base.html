@@ -94,7 +94,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/transfers' %}border-l-4 border-amber bg-gray-100{% endif %}">
+                        <a href="/transfers" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path.startswith('/transfers') %}border-l-4 border-amber bg-gray-100{% endif %}">
                             Transfers
                         </a>
                     </li>

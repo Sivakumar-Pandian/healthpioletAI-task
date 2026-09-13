@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Stock Transfers</h1>
+    <a href="/transfers/new" class="bg-ink text-white px-4 py-2 text-sm">New Transfer</a>
+</div>
+
+{% if transfers %}
+<div class="overflow-x-auto">
+    <table class="w-full border-collapse text-sm">
+        <thead class="border-y border-ink text-left">
+            <tr>
+                <th class="py-2 pr-3">Document</th>
+                <th class="py-2 pr-3">From</th>
+                <th class="py-2 pr-3">To</th>
+                <th class="py-2 pr-3">Product</th>
+                <th class="py-2 pr-3">Batch</th>
+                <th class="py-2 pr-3 text-right">Qty</th>
+                <th class="py-2 pr-3">Status</th>
+                <th class="py-2 pr-3">Dispatched By</th>
+                <th class="py-2 pr-3">Dispatched At</th>
+                <th class="py-2 pr-3">Received By</th>
+                <th class="py-2 pr-3">Received At</th>
+                <th class="py-2">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for transfer in transfers %}
+            <tr class="border-b border-gray-300 cursor-pointer hover:bg-ink/5"
+                data-href="/transfers/{{ transfer.id }}"
+                onclick="if (!event.target.closest('a, button, form')) window.location.href=this.dataset.href">
+                <td class="py-3 pr-3 font-mono">
+                    <a href="/transfers/{{ transfer.id }}" class="text-ink underline">{{ transfer.document_no }}</a>
+                </td>
+                <td class="py-3 pr-3">{{ transfer.source_location.name }}</td>
+                <td class="py-3 pr-3">{{ transfer.destination_location.name }}</td>
+                <td class="py-3 pr-3">{{ transfer.product.name }}</td>
+                <td class="py-3 pr-3 font-mono">{{ transfer.batch_number }}</td>
+                <td class="py-3 pr-3 text-right">{{ transfer.quantity }}</td>
+                <td class="py-3 pr-3">
+                    {% if transfer.status.value == 'RECEIVED' %}
+                    <span class="bg-statusGreen text-white px-2 py-1 text-xs">RECEIVED</span>
+                    {% else %}
+                    <span class="bg-amber text-white px-2 py-1 text-xs">DISPATCHED</span>
+                    {% endif %}
+                </td>
+                <td class="py-3 pr-3">{{ transfer.dispatched_by.name }}</td>
+                <td class="py-3 pr-3">{{ transfer.dispatched_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td class="py-3 pr-3">
+                    {% if transfer.received_by %}{{ transfer.received_by.name }}{% else %}—{% endif %}
+                </td>
+                <td class="py-3 pr-3">
+                    {% if transfer.received_at %}{{ transfer.received_at.strftime('%Y-%m-%d %H:%M') }}{% else %}—{% endif %}
+                </td>
+                <td class="py-3 whitespace-nowrap">
+                    {% if transfer.status.value == 'DISPATCHED' %}
+                    <form action="/transfers/{{ transfer.id }}/receive" method="post" class="inline">
+                        <input id="receive-by-{{ transfer.id }}" type="hidden" name="received_by_id">
+                        <button type="submit"
+                            class="border border-statusGreen text-statusGreen px-2 py-1 text-xs confirm-receipt-btn"
+                            data-input-id="receive-by-{{ transfer.id }}">
+                            Confirm Receipt
+                        </button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-gray-600">No stock transfers yet — <a href="/transfers/new" class="text-ink underline">create one</a>.</p>
+{% endif %}
+
+<script>
+// Inject acting-as value into inline receive forms on submit
+document.querySelectorAll('.confirm-receipt-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        const inputId = btn.dataset.inputId;
+        const input = document.getElementById(inputId);
+        const actingAs = document.getElementById('acting-as-select');
+        if (input && actingAs) input.value = actingAs.value;
+    });
+});
+</script>
+{% endblock %}
