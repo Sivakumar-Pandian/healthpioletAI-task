@@ -33,6 +33,7 @@ from app.routers.stock_transfers import router as stock_transfers_router
 from app.routers.supplier_invoices import router as supplier_invoices_router
 from app.routers.dispensing import router as dispensing_router
 from app.routers.traceability import router as traceability_router
+from app.routers.demo import router as demo_router
 from app.seed import seed_if_empty
 
 app = FastAPI()
@@ -60,6 +61,7 @@ app.include_router(supplier_invoices_router)
 app.include_router(stock_transfers_router)
 app.include_router(dispensing_router)
 app.include_router(traceability_router)
+app.include_router(demo_router)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -161,21 +163,3 @@ def master_data(request: Request, db: Session = Depends(get_db)):
         }
     )
     return templates.TemplateResponse(request, "master_data.html", context)
-
-
-@app.post("/demo/reset")
-def reset_demo_data(db: Session = Depends(get_db)):
-    for model in (
-        StockLedgerEntry,
-        SupplierInvoice,
-        GrnCorrection,
-        GoodsReceiptNote,
-        PurchaseOrder,
-        Requisition,
-    ):
-        db.query(model).delete(synchronize_session=False)
-    db.commit()
-    return RedirectResponse(
-        url=success_redirect("/", "Demo data reset — starting fresh."),
-        status_code=303,
-    )

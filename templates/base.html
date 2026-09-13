@@ -109,9 +109,12 @@
                         </a>
                     </li>
                 </ul>
-                <div class="border-t border-gray-300 mt-8 pt-4">
+                <div class="border-t border-gray-300 mt-8 pt-4 space-y-2">
+                    <form action="/demo/replay" method="post" onsubmit="return confirm('Replay full demo scenario? Existing transactions will be cleared and replaced with a complete REQ→SALE story.');">
+                        <button type="submit" class="border border-amber text-amber px-3 py-2 text-xs w-full hover:bg-amber/10 transition-colors">Run Full Scenario</button>
+                    </form>
                     <form action="/demo/reset" method="post" onsubmit="return confirm('Reset all demo transactions? Products, suppliers, locations, and users will be kept.');">
-                        <button type="submit" class="border border-statusRed text-statusRed px-3 py-2 text-xs w-full">Reset Demo Data</button>
+                        <button type="submit" class="border border-statusRed text-statusRed px-3 py-2 text-xs w-full hover:bg-statusRed/10 transition-colors">Reset Demo Data</button>
                     </form>
                 </div>
             </nav>
