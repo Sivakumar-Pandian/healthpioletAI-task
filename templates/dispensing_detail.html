@@ -9,7 +9,10 @@
 
 <div class="flex items-center justify-between mb-6">
     <h1 class="font-serif text-2xl">Sales Invoice <span class="font-mono text-xl">{{ sale.document_no }}</span></h1>
-    <a href="/dispensing" class="text-ink underline text-sm py-2">Back to Dispensing</a>
+    <div class="flex items-center gap-3 text-sm">
+        <a href="/dispensing/{{ sale.id }}/pdf" class="border border-ink px-3 py-1.5 text-xs text-ink hover:bg-gray-200">Download PDF</a>
+        <a href="/dispensing" class="text-ink underline py-2">Back to Dispensing</a>
+    </div>
 </div>
 
 {% include "_chain_strip.html" %}

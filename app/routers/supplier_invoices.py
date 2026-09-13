@@ -275,3 +275,21 @@ def resolve_supplier_invoice(
         ),
         status_code=303,
     )
+
+
+from fastapi import Response
+from app.pdf_export import supplier_invoice_pdf
+
+
+@router.get("/{invoice_id}/pdf")
+def download_supplier_invoice_pdf(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+):
+    invoice = get_invoice_or_404(db, invoice_id)
+    pdf_bytes = supplier_invoice_pdf(invoice)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{invoice.document_no}.pdf"'},
+    )

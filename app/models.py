@@ -143,6 +143,7 @@ class GoodsReceiptNote(Base):
     accepted_quantity = Column(Integer, nullable=False)
     damaged_quantity = Column(Integer, nullable=False)
     missing_quantity = Column(Integer, nullable=False)
+    photo_path = Column(String, nullable=True)
     posted_by_id = Column(Integer, ForeignKey("app_users.id"), nullable=False)
     posted_at = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -164,6 +165,7 @@ class GrnCorrection(Base):
     new_damaged_quantity = Column(Integer, nullable=False)
     new_missing_quantity = Column(Integer, nullable=False)
     reason = Column(String, nullable=False)
+    photo_path = Column(String, nullable=True)
     corrected_by_id = Column(Integer, ForeignKey("app_users.id"), nullable=False)
     corrected_at = Column(DateTime, default=datetime.datetime.utcnow)
 

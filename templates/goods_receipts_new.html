@@ -28,7 +28,7 @@
     <div class="py-3"><span class="block text-gray-600">Delivery Location</span>{{ purchase_order.delivery_location.name }}</div>
 </div>
 
-<form id="goods-receipt-form" action="/goods-receipts/new" method="post" class="max-w-xl space-y-5">
+<form id="goods-receipt-form" action="/goods-receipts/new" method="post" enctype="multipart/form-data" class="max-w-xl space-y-5">
     <input type="hidden" name="po_id" value="{{ purchase_order.id }}">
     <input id="posted-by-id" type="hidden" name="posted_by_id">
 
@@ -58,6 +58,13 @@
         <label class="block text-sm">
             <span class="block mb-1">Missing Quantity</span>
             <input id="missing-quantity" name="missing_quantity" type="number" min="0" value="{{ form_data.missing_quantity }}" class="w-full border border-ink px-3 py-2 bg-paper" required>
+        </label>
+    </div>
+
+    <div id="damage-photo-container" class="hidden text-sm">
+        <label class="block">
+            <span class="block mb-1">Photo evidence of damage (optional)</span>
+            <input type="file" name="damage_photo" accept="image/*" class="w-full border border-ink px-3 py-2 bg-paper text-sm">
         </label>
     </div>
 
@@ -116,6 +123,15 @@ function validateQuantities() {
                 : `Please fix the PO reconciliation: physical (${physical}) + missing (${missing}) = ${physical + missing}, but the PO quantity is ${orderedQuantity}.`,
         },
     ];
+
+    const damagePhotoContainer = document.getElementById('damage-photo-container');
+    if (damagePhotoContainer) {
+        if (damaged > 0) {
+            damagePhotoContainer.classList.remove('hidden');
+        } else {
+            damagePhotoContainer.classList.add('hidden');
+        }
+    }
 
     summary.textContent = `Received physically: ${physical} | Accepted: ${accepted} | Damaged: ${damaged} | Missing: ${missing}`;
     checks.forEach((check) => {

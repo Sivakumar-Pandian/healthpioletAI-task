@@ -8,7 +8,10 @@
 </nav>
 <div class="flex items-center justify-between mb-6">
     <h1 class="font-serif text-2xl">Supplier Invoice <span class="font-mono text-xl">{{ supplier_invoice.document_no }}</span></h1>
-    <a href="/supplier-invoices" class="text-ink underline text-sm">Back to Supplier Invoices</a>
+    <div class="flex items-center gap-3">
+        <a href="/supplier-invoices/{{ supplier_invoice.id }}/pdf" class="border border-ink px-3 py-1.5 text-xs text-ink hover:bg-gray-200">Download PDF</a>
+        <a href="/supplier-invoices" class="text-ink underline text-sm">Back to Supplier Invoices</a>
+    </div>
 </div>
 
 {% include "_chain_strip.html" %}

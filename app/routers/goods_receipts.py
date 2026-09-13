@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+import os
+import time
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -17,10 +19,34 @@ from app.models import (
     StockStatus,
     SupplierInvoice,
 )
+from app.pdf_export import grn_pdf
 from app.stock import computed_stock
 
 router = APIRouter(prefix="/goods-receipts", tags=["goods-receipts"])
 templates = Jinja2Templates(directory="templates")
+
+UPLOADS_DIR = "static/uploads/damage-photos"
+
+
+def process_damage_photo(damage_photo: UploadFile | None, document_no: str) -> str | None:
+    if not damage_photo or not damage_photo.filename:
+        return None
+    if not damage_photo.content_type or not damage_photo.content_type.startswith("image/"):
+        raise HTTPException(status_code=422, detail="Damage photo must be an image file.")
+
+    content = damage_photo.file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=422, detail="Damage photo must be under 5MB.")
+
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+    ext = os.path.splitext(damage_photo.filename)[1] or ".jpg"
+    filename = f"{document_no}-{int(time.time())}{ext}"
+    filepath = os.path.join(UPLOADS_DIR, filename)
+
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    return f"uploads/damage-photos/{filename}"
 
 
 def get_purchase_order_or_404(db: Session, purchase_order_id: int):
@@ -247,6 +273,7 @@ def create_goods_receipt(
     damaged_quantity: str = Form(""),
     missing_quantity: str = Form(""),
     posted_by_id: str = Form(""),
+    damage_photo: UploadFile | None = File(None),
     db: Session = Depends(get_db),
 ):
     purchase_order = get_purchase_order_or_404(db, po_id)
@@ -303,15 +330,15 @@ def create_goods_receipt(
             request,
             db,
             purchase_order,
-            ["Please select the person posting this receipt from the Acting as menu."],
+            ["Please select the person receiving this shipment from the Acting as menu."],
             form_data,
         )
 
     try:
-        physical_quantity = parse_quantity(physical_quantity, "physical quantity")
-        accepted_quantity = parse_quantity(accepted_quantity, "accepted quantity")
-        damaged_quantity = parse_quantity(damaged_quantity, "damaged quantity")
-        missing_quantity = parse_quantity(missing_quantity, "missing quantity")
+        parsed_physical_quantity = parse_quantity(physical_quantity, "physical quantity")
+        parsed_accepted_quantity = parse_quantity(accepted_quantity, "accepted quantity")
+        parsed_damaged_quantity = parse_quantity(damaged_quantity, "damaged quantity")
+        parsed_missing_quantity = parse_quantity(missing_quantity, "missing quantity")
     except HTTPException as exc:
         return receipt_form_response(
             request,
@@ -323,10 +350,10 @@ def create_goods_receipt(
 
     try:
         validate_receipt_quantities(
-            physical_quantity,
-            accepted_quantity,
-            damaged_quantity,
-            missing_quantity,
+            parsed_physical_quantity,
+            parsed_accepted_quantity,
+            parsed_damaged_quantity,
+            parsed_missing_quantity,
             purchase_order.quantity,
         )
     except HTTPException as exc:
@@ -338,15 +365,30 @@ def create_goods_receipt(
             form_data,
         )
 
+    doc_no = next_document_number(db, GoodsReceiptNote, "document_no", "GRN")
+    photo_path = None
+    if damage_photo and damage_photo.filename:
+        try:
+            photo_path = process_damage_photo(damage_photo, doc_no)
+        except HTTPException as exc:
+            return receipt_form_response(
+                request,
+                db,
+                purchase_order,
+                friendly_error_messages(exc.detail),
+                form_data,
+            )
+
     receipt = GoodsReceiptNote(
-        document_no=next_document_number(db, GoodsReceiptNote, "document_no", "GRN"),
+        document_no=doc_no,
         po_id=purchase_order.id,
         batch_number=batch_number.strip(),
         expiry_date=expiry_date,
-        physical_quantity=physical_quantity,
-        accepted_quantity=accepted_quantity,
-        damaged_quantity=damaged_quantity,
-        missing_quantity=missing_quantity,
+        physical_quantity=parsed_physical_quantity,
+        accepted_quantity=parsed_accepted_quantity,
+        damaged_quantity=parsed_damaged_quantity,
+        missing_quantity=parsed_missing_quantity,
+        photo_path=photo_path,
         posted_by_id=posting_user_id,
     )
     db.add(receipt)
@@ -426,6 +468,7 @@ def correct_goods_receipt(
     missing_quantity: str = Form(""),
     reason: str = Form(""),
     corrected_by_id: str = Form(""),
+    damage_photo: UploadFile | None = File(None),
     db: Session = Depends(get_db),
 ):
     receipt = get_goods_receipt_or_404(db, receipt_id)
@@ -498,6 +541,19 @@ def correct_goods_receipt(
             form_data,
         )
 
+    photo_path = None
+    if damage_photo and damage_photo.filename:
+        try:
+            photo_path = process_damage_photo(damage_photo, f"CORR-{receipt.document_no}")
+        except HTTPException as exc:
+            return correction_form_response(
+                request,
+                db,
+                receipt,
+                friendly_error_messages(exc.detail),
+                form_data,
+            )
+
     old_accepted_quantity = receipt.accepted_quantity
     old_damaged_quantity = receipt.damaged_quantity
     old_missing_quantity = receipt.missing_quantity
@@ -510,6 +566,7 @@ def correct_goods_receipt(
         new_damaged_quantity=new_damaged_quantity,
         new_missing_quantity=new_missing_quantity,
         reason=reason.strip(),
+        photo_path=photo_path,
         corrected_by_id=correcting_user_id,
     )
     db.add(correction)
@@ -596,4 +653,19 @@ def goods_receipt_detail(
     )
     return templates.TemplateResponse(
         request, "goods_receipts_detail.html", context
+    )
+
+
+@router.get("/{receipt_id}/pdf")
+def download_goods_receipt_pdf(
+    receipt_id: int,
+    db: Session = Depends(get_db),
+):
+    receipt = get_goods_receipt_or_404(db, receipt_id)
+    correction = get_correction_for_receipt(db, receipt.id)
+    pdf_bytes = grn_pdf(receipt, correction)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{receipt.document_no}.pdf"'},
     )

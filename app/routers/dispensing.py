@@ -330,3 +330,21 @@ def dispensing_detail(
     if grn and grn.purchase_order:
         ctx["chain_steps"] = build_chain(db, grn.purchase_order.requisition_id)
     return templates.TemplateResponse(request, "dispensing_detail.html", ctx)
+
+
+from fastapi import Response
+from app.pdf_export import sales_invoice_pdf
+
+
+@router.get("/{sale_id}/pdf")
+def download_sales_invoice_pdf(
+    sale_id: int,
+    db: Session = Depends(get_db),
+):
+    sale = get_sale_or_404(db, sale_id)
+    pdf_bytes = sales_invoice_pdf(sale)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{sale.document_no}.pdf"'},
+    )

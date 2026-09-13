@@ -8,7 +8,8 @@
 </nav>
 <div class="flex items-center justify-between mb-6">
     <h1 class="font-serif text-2xl">Goods Receipt <span class="font-mono text-xl">{{ goods_receipt.document_no }}</span></h1>
-    <div class="flex gap-4 text-sm">
+    <div class="flex items-center gap-3 text-sm">
+        <a href="/goods-receipts/{{ goods_receipt.id }}/pdf" class="border border-ink px-3 py-1.5 text-xs text-ink hover:bg-gray-200">Download PDF</a>
         {% if not correction %}
         <a href="/goods-receipts/{{ goods_receipt.id }}/correct" class="bg-ink text-white px-4 py-2">Correct this GRN</a>
         {% endif %}
@@ -27,7 +28,18 @@
     <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Expiry Date</dt><dd>{{ goods_receipt.expiry_date }}</dd></div>
     <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Physical Quantity</dt><dd>{{ goods_receipt.physical_quantity }}</dd></div>
     <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Accepted Quantity</dt><dd class="text-statusGreen">{{ goods_receipt.accepted_quantity }}</dd></div>
-    <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Damaged Quantity</dt><dd class="text-statusRed">{{ goods_receipt.damaged_quantity }}</dd></div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Damaged Quantity</dt>
+        <dd class="text-statusRed">{{ goods_receipt.damaged_quantity }}</dd>
+        {% if goods_receipt.photo_path %}
+        <div class="mt-2">
+            <span class="block text-xs text-gray-500 mb-1">Damage photo:</span>
+            <a href="/static/{{ goods_receipt.photo_path }}" target="_blank" class="inline-block border border-gray-300 p-1 bg-white hover:opacity-90">
+                <img src="/static/{{ goods_receipt.photo_path }}" alt="Damage evidence for {{ goods_receipt.document_no }}" class="max-w-xs h-auto max-h-48 object-contain">
+            </a>
+        </div>
+        {% endif %}
+    </div>
     <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Missing Quantity</dt><dd class="text-statusGrey">{{ goods_receipt.missing_quantity }}</dd></div>
     <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Posted By</dt><dd>{{ goods_receipt.posted_by.name }}</dd></div>
     <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Posted At</dt><dd>{{ goods_receipt.posted_at.strftime('%Y-%m-%d %H:%M') }}</dd></div>
@@ -53,6 +65,14 @@
             <span class="block text-gray-600">Reason</span>
             {{ correction.reason }}
         </div>
+        {% if correction.photo_path %}
+        <div class="border-t border-gray-300 py-3">
+            <span class="block text-gray-600 mb-1">Correction Damage Photo</span>
+            <a href="/static/{{ correction.photo_path }}" target="_blank" class="inline-block border border-gray-300 p-1 bg-white hover:opacity-90">
+                <img src="/static/{{ correction.photo_path }}" alt="Correction damage evidence" class="max-w-xs h-auto max-h-48 object-contain">
+            </a>
+        </div>
+        {% endif %}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 border-t border-gray-300 py-3">
             <div><span class="block text-gray-600">Corrected By</span>{{ correction.corrected_by.name }}</div>
             <div><span class="block text-gray-600">Corrected At</span>{{ correction.corrected_at.strftime('%Y-%m-%d %H:%M') }}</div>

@@ -103,6 +103,8 @@ def create_purchase_order(
     )
 
 
+from fastapi import Response
+from app.pdf_export import purchase_order_pdf
 from app.traceability import build_chain
 
 
@@ -122,3 +124,17 @@ def purchase_order_detail(
     )
     context["chain_steps"] = build_chain(db, purchase_order.requisition_id)
     return templates.TemplateResponse(request, "purchase_orders_detail.html", context)
+
+
+@router.get("/{purchase_order_id}/pdf")
+def download_purchase_order_pdf(
+    purchase_order_id: int,
+    db: Session = Depends(get_db),
+):
+    po = get_purchase_order_or_404(db, purchase_order_id)
+    pdf_bytes = purchase_order_pdf(po)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{po.document_no}.pdf"'},
+    )
