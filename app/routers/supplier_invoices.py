@@ -64,11 +64,19 @@ def invoice_form_response(
     status_code: int = 422,
 ):
     context = header_context(db, request)
+    eff_accepted = effective_accepted_quantity(db, grn)
+    expected_payable = round(
+        eff_accepted
+        * grn.purchase_order.unit_price
+        * (1 + grn.purchase_order.tax_percent / 100),
+        2,
+    )
     context.update(
         {
             "goods_receipt": grn,
             "purchase_order": grn.purchase_order,
-            "effective_accepted": effective_accepted_quantity(db, grn),
+            "effective_accepted": eff_accepted,
+            "expected_payable": expected_payable,
             "error_messages": error_messages,
             "form_data": form_data,
         }

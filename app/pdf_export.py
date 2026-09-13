@@ -1,5 +1,5 @@
 from fpdf import FPDF
-from app.models import GoodsReceiptNote, GrnCorrection, PurchaseOrder, SalesInvoice, SupplierInvoice
+from app.models import GoodsReceiptNote, GrnCorrection, PurchaseOrder, SalesInvoice, StockTransfer, SupplierInvoice
 
 
 class CleanPDF(FPDF):
@@ -133,6 +133,24 @@ def sales_invoice_pdf(sale: SalesInvoice) -> bytes:
         ("Cost Basis (Internal)", f"INR {sale.cost_of_goods:,.2f}"),
         ("Dispensed By", sale.dispensed_by.name),
         ("Dispensed At", sale.dispensed_at.strftime("%Y-%m-%d %H:%M")),
+    ]
+    _render_table(pdf, pairs)
+    return bytes(pdf.output())
+
+
+def stock_transfer_pdf(transfer: StockTransfer) -> bytes:
+    pdf = _create_base_pdf("STOCK TRANSFER RECEIPT / NOTE", transfer.document_no)
+    pairs = [
+        ("Source Location", transfer.source_location.name),
+        ("Destination Location", transfer.destination_location.name),
+        ("Product", transfer.product.name),
+        ("Batch Number", transfer.batch_number),
+        ("Quantity", str(transfer.quantity)),
+        ("Status", transfer.status.value),
+        ("Dispatched By", transfer.dispatched_by.name),
+        ("Dispatched At", transfer.dispatched_at.strftime("%Y-%m-%d %H:%M")),
+        ("Received By", transfer.received_by.name if transfer.received_by else "—"),
+        ("Received At", transfer.received_at.strftime("%Y-%m-%d %H:%M") if transfer.received_at else "—"),
     ]
     _render_table(pdf, pairs)
     return bytes(pdf.output())

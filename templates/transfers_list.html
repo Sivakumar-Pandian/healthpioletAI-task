@@ -54,7 +54,7 @@
                     {% if transfer.received_at %}{{ transfer.received_at.strftime('%Y-%m-%d %H:%M') }}{% else %}—{% endif %}
                 </td>
                 <td class="py-3 whitespace-nowrap">
-                    {% if transfer.status.value == 'DISPATCHED' %}
+                    {% if transfer.status.value == 'DISPATCHED' and (not acting_user or acting_user.role.value in ['CENTRAL_PURCHASING', 'COMPANY_ADMIN', 'RECEIVING_STAFF'] or (acting_user.role.value == 'BRANCH_STAFF' and acting_user.home_location_id == transfer.destination_location_id)) %}
                     <form action="/transfers/{{ transfer.id }}/receive" method="post" class="inline">
                         <input id="receive-by-{{ transfer.id }}" type="hidden" name="received_by_id">
                         <button type="submit"

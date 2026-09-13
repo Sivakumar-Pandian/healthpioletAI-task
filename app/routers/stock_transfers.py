@@ -1,6 +1,6 @@
 import datetime
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -299,6 +299,13 @@ def receive_transfer(
                 status_code=403, detail="Forbidden: You do not have access to this transfer"
             )
 
+    if acting_user and acting_user.role == UserRole.BRANCH_STAFF:
+        if acting_user.home_location_id != transfer.destination_location_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: Only staff at the destination branch or Central/Admin users can confirm receipt.",
+            )
+
     if transfer.status != StockTransferStatus.DISPATCHED:
         raise HTTPException(
             status_code=422,
@@ -343,6 +350,35 @@ def receive_transfer(
 
 from app.models import GoodsReceiptNote
 from app.traceability import build_chain
+
+
+from app.pdf_export import stock_transfer_pdf
+
+
+@router.get("/{transfer_id}/pdf")
+def download_stock_transfer_pdf(
+    transfer_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    acting_user = get_acting_user(db, request)
+    loc_ids = scoped_location_ids(db, acting_user)
+    transfer = get_transfer_or_404(db, transfer_id)
+    if loc_ids is not None:
+        if (
+            transfer.source_location_id not in loc_ids
+            and transfer.destination_location_id not in loc_ids
+        ):
+            raise HTTPException(
+                status_code=403, detail="Forbidden: You do not have access to this transfer"
+            )
+
+    pdf_bytes = stock_transfer_pdf(transfer)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{transfer.document_no}.pdf"'},
+    )
 
 
 @router.get("/{transfer_id}", response_class=HTMLResponse)

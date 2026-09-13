@@ -9,8 +9,9 @@
 
 <div class="flex items-center justify-between mb-6">
     <h1 class="font-serif text-2xl">Transfer <span class="font-mono text-xl">{{ transfer.document_no }}</span></h1>
-    <div class="flex gap-4 items-center text-sm">
-        {% if transfer.status.value == 'DISPATCHED' %}
+    <div class="flex items-center gap-3 text-sm">
+        <a href="/transfers/{{ transfer.id }}/pdf" class="border border-ink px-3 py-1.5 text-xs text-ink hover:bg-gray-200">Download PDF</a>
+        {% if transfer.status.value == 'DISPATCHED' and (not acting_user or acting_user.role.value in ['CENTRAL_PURCHASING', 'COMPANY_ADMIN', 'RECEIVING_STAFF'] or (acting_user.role.value == 'BRANCH_STAFF' and acting_user.home_location_id == transfer.destination_location_id)) %}
         <form action="/transfers/{{ transfer.id }}/receive" method="post" class="inline flex gap-2 items-center">
             <input id="receive-by-detail" type="hidden" name="received_by_id">
             <button type="submit" id="receive-btn"
