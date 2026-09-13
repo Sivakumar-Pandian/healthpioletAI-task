@@ -235,6 +235,16 @@ def list_goods_receipts(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request, "goods_receipts_list.html", context)
 
 
+def is_authorized_to_receive_po(acting_user: AppUser | None, po: PurchaseOrder) -> bool:
+    if not acting_user:
+        return False
+    if acting_user.role in (UserRole.RECEIVING_STAFF, UserRole.CENTRAL_PURCHASING, UserRole.COMPANY_ADMIN):
+        return True
+    if acting_user.role == UserRole.BRANCH_STAFF and acting_user.home_location_id == po.delivery_location_id:
+        return True
+    return False
+
+
 @router.get("/new", response_class=HTMLResponse)
 def new_goods_receipt_form(
     po_id: int,
@@ -242,12 +252,12 @@ def new_goods_receipt_form(
     db: Session = Depends(get_db),
 ):
     acting_user = get_acting_user(db, request)
-    if not acting_user or acting_user.role not in (UserRole.RECEIVING_STAFF, UserRole.CENTRAL_PURCHASING, UserRole.COMPANY_ADMIN):
+    purchase_order = get_purchase_order_or_404(db, po_id)
+    if not is_authorized_to_receive_po(acting_user, purchase_order):
         raise HTTPException(
             status_code=403,
-            detail="Forbidden: Only Receiving Staff, Central Purchasing, or Company Admin can receive goods.",
+            detail="Forbidden: Only Receiving Staff, Central Purchasing, Company Admin, or Branch Staff assigned to the delivery branch can receive goods.",
         )
-    purchase_order = get_purchase_order_or_404(db, po_id)
     context = header_context(db, request)
     context.update(
         {
@@ -274,12 +284,12 @@ def create_goods_receipt(
     db: Session = Depends(get_db),
 ):
     acting_user = get_acting_user(db, request, acting_as_id=posted_by_id)
-    if not acting_user or acting_user.role not in (UserRole.RECEIVING_STAFF, UserRole.CENTRAL_PURCHASING, UserRole.COMPANY_ADMIN):
+    purchase_order = get_purchase_order_or_404(db, po_id)
+    if not is_authorized_to_receive_po(acting_user, purchase_order):
         raise HTTPException(
             status_code=403,
-            detail="Forbidden: Only Receiving Staff, Central Purchasing, or Company Admin can receive goods.",
+            detail="Forbidden: Only Receiving Staff, Central Purchasing, Company Admin, or Branch Staff assigned to the delivery branch can receive goods.",
         )
-    purchase_order = get_purchase_order_or_404(db, po_id)
     loc_ids = scoped_location_ids(db, acting_user)
     if loc_ids is not None and purchase_order.delivery_location_id not in loc_ids:
         raise HTTPException(status_code=403, detail="Access denied for this branch")
