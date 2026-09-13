@@ -556,6 +556,9 @@ def correct_goods_receipt(
     )
 
 
+from app.traceability import build_chain
+
+
 @router.get("/{receipt_id}", response_class=HTMLResponse)
 def goods_receipt_detail(
     receipt_id: int,
@@ -588,6 +591,9 @@ def goods_receipt_detail(
                 batch_number=receipt.batch_number,
                 stock_status=StockStatus.QUARANTINED,
             ),
+            "chain_steps": build_chain(db, purchase_order.requisition_id),
         }
     )
-    return templates.TemplateResponse(request, "goods_receipts_detail.html", context)
+    return templates.TemplateResponse(
+        request, "goods_receipts_detail.html", context
+    )

@@ -32,6 +32,7 @@ from app.routers.stock_ledger import router as stock_ledger_router
 from app.routers.stock_transfers import router as stock_transfers_router
 from app.routers.supplier_invoices import router as supplier_invoices_router
 from app.routers.dispensing import router as dispensing_router
+from app.routers.traceability import router as traceability_router
 from app.seed import seed_if_empty
 
 app = FastAPI()
@@ -58,6 +59,7 @@ app.include_router(stock_ledger_router)
 app.include_router(supplier_invoices_router)
 app.include_router(stock_transfers_router)
 app.include_router(dispensing_router)
+app.include_router(traceability_router)
 
 
 @app.get("/", response_class=HTMLResponse)

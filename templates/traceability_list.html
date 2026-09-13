@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Traceability</h1>
+    <p class="text-sm text-gray-600">Click a requisition to see its full document chain</p>
+</div>
+
+{% if requisitions %}
+<div class="overflow-x-auto">
+    <table class="w-full border-collapse text-sm">
+        <thead class="border-y border-ink text-left">
+            <tr>
+                <th class="py-2 pr-3">Document</th>
+                <th class="py-2 pr-3">Location</th>
+                <th class="py-2 pr-3">Product</th>
+                <th class="py-2 pr-3 text-right">Qty</th>
+                <th class="py-2 pr-3">Required By</th>
+                <th class="py-2 pr-3">Status</th>
+                <th class="py-2">Requester</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for req in requisitions %}
+            <tr class="border-b border-gray-300 cursor-pointer hover:bg-ink/5"
+                data-href="/traceability/{{ req.id }}"
+                onclick="window.location.href=this.dataset.href">
+                <td class="py-3 pr-3 font-mono">
+                    <a href="/traceability/{{ req.id }}" class="text-ink underline">{{ req.document_no }}</a>
+                </td>
+                <td class="py-3 pr-3">{{ req.location.name }}</td>
+                <td class="py-3 pr-3">{{ req.product.name }}</td>
+                <td class="py-3 pr-3 text-right">{{ req.quantity }}</td>
+                <td class="py-3 pr-3">{{ req.required_date }}</td>
+                <td class="py-3 pr-3">
+                    {% if req.status.value == 'APPROVED' %}
+                    <span class="bg-statusGreen text-white px-2 py-1 text-xs">{{ req.status.value }}</span>
+                    {% elif req.status.value == 'REJECTED' %}
+                    <span class="bg-statusRed text-white px-2 py-1 text-xs">{{ req.status.value }}</span>
+                    {% elif req.status.value == 'SUBMITTED' %}
+                    <span class="bg-statusGrey text-white px-2 py-1 text-xs">{{ req.status.value }}</span>
+                    {% else %}
+                    <span class="bg-statusGrey text-white px-2 py-1 text-xs">{{ req.status.value }}</span>
+                    {% endif %}
+                </td>
+                <td class="py-3">{{ req.requester.name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-gray-600">No requisitions yet.</p>
+{% endif %}
+{% endblock %}

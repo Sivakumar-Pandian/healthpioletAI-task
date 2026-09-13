@@ -103,6 +103,11 @@
                             Dispensing
                         </a>
                     </li>
+                    <li>
+                        <a href="/traceability" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path.startswith('/traceability') %}border-l-4 border-amber bg-gray-100{% endif %}">
+                            Traceability
+                        </a>
+                    </li>
                 </ul>
                 <div class="border-t border-gray-300 mt-8 pt-4">
                     <form action="/demo/reset" method="post" onsubmit="return confirm('Reset all demo transactions? Products, suppliers, locations, and users will be kept.');">

@@ -112,6 +112,8 @@ def reject_requisition(requisition_id: int, db: Session = Depends(get_db)):
     )
 
 
+from app.traceability import build_chain
+
 @router.get("/{requisition_id}", response_class=HTMLResponse)
 def requisition_detail(
     requisition_id: int,
@@ -126,4 +128,5 @@ def requisition_detail(
         .filter(PurchaseOrder.requisition_id == requisition.id)
         .first()
     )
+    context["chain_steps"] = build_chain(db, requisition.id)
     return templates.TemplateResponse(request, "requisitions_detail.html", context)

@@ -313,6 +313,10 @@ def receive_transfer(
     )
 
 
+from app.models import GoodsReceiptNote
+from app.traceability import build_chain
+
+
 @router.get("/{transfer_id}", response_class=HTMLResponse)
 def transfer_detail(
     transfer_id: int,
@@ -322,4 +326,11 @@ def transfer_detail(
     transfer = get_transfer_or_404(db, transfer_id)
     ctx = header_context(db)
     ctx["transfer"] = transfer
+    grn = (
+        db.query(GoodsReceiptNote)
+        .filter(GoodsReceiptNote.batch_number == transfer.batch_number)
+        .first()
+    )
+    if grn and grn.purchase_order:
+        ctx["chain_steps"] = build_chain(db, grn.purchase_order.requisition_id)
     return templates.TemplateResponse(request, "transfers_detail.html", ctx)

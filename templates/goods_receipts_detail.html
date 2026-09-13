@@ -16,7 +16,7 @@
     </div>
 </div>
 
-<p class="font-mono text-sm mb-6"><a href="/requisitions/{{ goods_receipt.purchase_order.requisition.id }}" class="text-ink underline">{{ goods_receipt.purchase_order.requisition.document_no }}</a> → <a href="/purchase-orders/{{ goods_receipt.purchase_order.id }}" class="text-ink underline">{{ goods_receipt.purchase_order.document_no }}</a> → {{ goods_receipt.document_no }}</p>
+{% include "_chain_strip.html" %}
 
 <dl class="grid grid-cols-1 md:grid-cols-2 max-w-3xl border-t border-ink text-sm">
     <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Purchase Order</dt><dd class="font-mono"><a href="/purchase-orders/{{ goods_receipt.purchase_order.id }}" class="underline">{{ goods_receipt.purchase_order.document_no }}</a></dd></div>

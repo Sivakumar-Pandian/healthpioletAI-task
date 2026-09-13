@@ -224,6 +224,9 @@ def create_supplier_invoice(
     )
 
 
+from app.traceability import build_chain
+
+
 @router.get("/{invoice_id}", response_class=HTMLResponse)
 def supplier_invoice_detail(
     invoice_id: int,
@@ -238,6 +241,7 @@ def supplier_invoice_detail(
             "effective_accepted": effective_accepted_quantity(
                 db, invoice.goods_receipt_note
             ),
+            "chain_steps": build_chain(db, invoice.purchase_order.requisition_id),
         }
     )
     return templates.TemplateResponse(

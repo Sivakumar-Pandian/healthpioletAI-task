@@ -309,6 +309,10 @@ def create_dispensing(
     )
 
 
+from app.models import GoodsReceiptNote
+from app.traceability import build_chain
+
+
 @router.get("/{sale_id}", response_class=HTMLResponse)
 def dispensing_detail(
     sale_id: int,
@@ -318,4 +322,11 @@ def dispensing_detail(
     sale = get_sale_or_404(db, sale_id)
     ctx = header_context(db)
     ctx["sale"] = sale
+    grn = (
+        db.query(GoodsReceiptNote)
+        .filter(GoodsReceiptNote.batch_number == sale.batch_number)
+        .first()
+    )
+    if grn and grn.purchase_order:
+        ctx["chain_steps"] = build_chain(db, grn.purchase_order.requisition_id)
     return templates.TemplateResponse(request, "dispensing_detail.html", ctx)

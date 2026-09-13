@@ -103,6 +103,9 @@ def create_purchase_order(
     )
 
 
+from app.traceability import build_chain
+
+
 @router.get("/{purchase_order_id}", response_class=HTMLResponse)
 def purchase_order_detail(
     purchase_order_id: int,
@@ -117,4 +120,5 @@ def purchase_order_detail(
         .filter(GoodsReceiptNote.po_id == purchase_order.id)
         .first()
     )
+    context["chain_steps"] = build_chain(db, purchase_order.requisition_id)
     return templates.TemplateResponse(request, "purchase_orders_detail.html", context)

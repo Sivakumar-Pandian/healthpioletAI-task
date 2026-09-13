@@ -1,0 +1,77 @@
+{#
+  _chain_strip.html — Reusable chain strip include.
+  Expects: chain_steps  (list of step dicts from build_chain())
+           chain_compact (bool, optional, default True) — compact vs. detail variant
+
+  Color tokens (Tailwind custom):
+    green  → bg-statusGreen / border-statusGreen / text-statusGreen
+    amber  → bg-amber / border-amber / text-amber
+    red    → bg-statusRed / border-statusRed / text-statusRed
+    grey   → bg-statusGrey / border-statusGrey / text-statusGrey
+#}
+{% if chain_steps %}
+<div class="mt-4 mb-8 overflow-x-auto">
+    <div class="flex items-start gap-0 min-w-max">
+        {% for step in chain_steps %}
+        {# --- Arrow connector between pills --- #}
+        {% if not loop.first %}
+        <div class="flex items-center self-center mx-1 text-gray-400 text-lg select-none" aria-hidden="true">→</div>
+        {% endif %}
+
+        {# --- Pill --- #}
+        {% set c = step.status_color %}
+        <a href="{{ step.url }}"
+           class="group block no-underline border-2
+               {% if c == 'green' %}border-statusGreen bg-statusGreen/10 hover:bg-statusGreen/20
+               {% elif c == 'amber' %}border-amber bg-amber/10 hover:bg-amber/20
+               {% elif c == 'red' %}border-statusRed bg-statusRed/10 hover:bg-statusRed/20
+               {% else %}border-statusGrey bg-statusGrey/10 hover:bg-statusGrey/20{% endif %}
+               {% if chain_compact %}px-3 py-2{% else %}px-4 py-3{% endif %}
+               relative text-left transition-colors">
+
+            {# Corrected badge on GRN pills #}
+            {% if step.corrected %}
+            <span class="absolute -top-2 -right-1 bg-amber text-white text-[10px] px-1 py-px leading-none">corrected</span>
+            {% endif %}
+
+            {# Type label #}
+            <span class="block text-[10px] uppercase tracking-wide mb-0.5
+               {% if c == 'green' %}text-statusGreen
+               {% elif c == 'amber' %}text-amber
+               {% elif c == 'red' %}text-statusRed
+               {% else %}text-statusGrey{% endif %}">
+                {{ step.label }}
+            </span>
+
+            {# Document number #}
+            <span class="block font-mono font-bold
+               {% if chain_compact %}text-sm{% else %}text-base{% endif %}
+               text-ink">
+                {{ step.doc_no }}
+            </span>
+
+            {# Status pill #}
+            {% if step.status %}
+            <span class="block text-[10px] mt-1 px-1
+               {% if c == 'green' %}bg-statusGreen text-white
+               {% elif c == 'amber' %}bg-amber text-white
+               {% elif c == 'red' %}bg-statusRed text-white
+               {% else %}bg-statusGrey text-white{% endif %}
+               inline-block">
+                {{ step.status }}
+            </span>
+            {% endif %}
+
+            {# Detail lines — only in expanded mode #}
+            {% if not chain_compact and step.detail_lines %}
+            <ul class="mt-2 space-y-0.5">
+                {% for line in step.detail_lines %}
+                <li class="text-xs text-gray-600">{{ line }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
