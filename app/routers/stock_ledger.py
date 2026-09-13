@@ -23,7 +23,11 @@ def stock_ledger(
     loc_ids = scoped_location_ids(db, acting_user)
 
     if loc_ids is not None:
-        location_id = loc_ids[0]
+        if loc_ids:
+            if location_id is None or location_id not in loc_ids:
+                location_id = loc_ids[0]
+        else:
+            location_id = -1
 
     query = db.query(StockLedgerEntry)
     if location_id is not None:

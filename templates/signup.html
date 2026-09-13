@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - HealthPilot Ops</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    paper: '#EFF1EA',
+                    ink: '#171A1D',
+                    amber: '#A6642A',
+                    statusGreen: '#2F6845',
+                    statusRed: '#9B3A2E',
+                    statusGrey: '#8A8F87',
+                },
+                fontFamily: {
+                    serif: ['"Source Serif 4"', 'serif'],
+                    sans: ['"IBM Plex Sans"', 'sans-serif'],
+                    mono: ['"IBM Plex Mono"', 'monospace'],
+                },
+                borderRadius: { DEFAULT: '2px', lg: '2px', xl: '2px' },
+            }
+        }
+    }
+    </script>
+</head>
+<body class="bg-paper text-ink font-sans flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-lg bg-white border border-gray-300 shadow-md p-8">
+        <div class="text-center mb-6">
+            <h1 class="font-serif text-3xl font-bold text-ink">HealthPilot Ops</h1>
+            <p class="text-xs uppercase tracking-widest text-gray-500 mt-1 font-mono">Create User Account & Organization</p>
+        </div>
+
+        {% if error %}
+        <div class="bg-statusRed/10 border border-statusRed text-statusRed px-4 py-3 mb-6 text-sm">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form action="/signup" method="post" class="space-y-4">
+            <div>
+                <label for="name" class="block text-xs font-mono font-medium text-gray-700 uppercase mb-1">Full Name</label>
+                <input type="text" id="name" name="name" value="{{ form_data.name if form_data else '' }}" required placeholder="e.g. Dr. Sarah Jenkins"
+                       class="w-full border border-gray-400 px-3 py-2 text-ink bg-paper focus:bg-white focus:border-amber focus:outline-none">
+            </div>
+
+            <div>
+                <label for="email" class="block text-xs font-mono font-medium text-gray-700 uppercase mb-1">Email Address</label>
+                <input type="email" id="email" name="email" value="{{ form_data.email if form_data else '' }}" required placeholder="sarah@healthpilot.org"
+                       class="w-full border border-gray-400 px-3 py-2 text-ink bg-paper focus:bg-white focus:border-amber focus:outline-none">
+            </div>
+
+            <div>
+                <label for="password" class="block text-xs font-mono font-medium text-gray-700 uppercase mb-1">Password</label>
+                <input type="password" id="password" name="password" required placeholder="Minimum 6 characters"
+                       class="w-full border border-gray-400 px-3 py-2 text-ink bg-paper focus:bg-white focus:border-amber focus:outline-none">
+            </div>
+
+            <div>
+                <label for="company_name" class="block text-xs font-mono font-medium text-gray-700 uppercase mb-1">Company / Organization</label>
+                <input type="text" id="company_name" name="company_name" value="{{ form_data.company_name if form_data else 'HealthPilot Healthcare Systems' }}" required placeholder="HealthPilot Systems"
+                       class="w-full border border-gray-400 px-3 py-2 text-ink bg-paper focus:bg-white focus:border-amber focus:outline-none">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="role" class="block text-xs font-mono font-medium text-gray-700 uppercase mb-1">System Role</label>
+                    <select id="role" name="role" required class="w-full border border-gray-400 px-3 py-2 text-ink bg-paper focus:bg-white focus:border-amber focus:outline-none">
+                        <option value="BRANCH_STAFF" {% if form_data and form_data.role == 'BRANCH_STAFF' %}selected{% endif %}>Branch Staff</option>
+                        <option value="CENTRAL_PURCHASING" {% if form_data and form_data.role == 'CENTRAL_PURCHASING' %}selected{% endif %}>Central Purchasing</option>
+                        <option value="RECEIVING_STAFF" {% if form_data and form_data.role == 'RECEIVING_STAFF' %}selected{% endif %}>Receiving Staff</option>
+                        <option value="COMPANY_ADMIN" {% if form_data and form_data.role == 'COMPANY_ADMIN' %}selected{% endif %}>Company Admin</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="branch_name" class="block text-xs font-mono font-medium text-gray-700 uppercase mb-1">Home Branch (Optional)</label>
+                    <input type="text" id="branch_name" name="branch_name" value="{{ form_data.branch_name if form_data else 'Branch A' }}" placeholder="e.g. Branch A"
+                           class="w-full border border-gray-400 px-3 py-2 text-ink bg-paper focus:bg-white focus:border-amber focus:outline-none">
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-amber text-white py-3 font-semibold hover:bg-amber/90 transition-colors mt-4">
+                Create Account & Register
+            </button>
+        </form>
+
+        <div class="mt-6 pt-6 border-t border-gray-200 text-center">
+            <p class="text-sm text-gray-600">
+                Already registered? 
+                <a href="/login" class="text-ink font-semibold hover:underline">Sign in to existing account</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -70,7 +70,14 @@ db.close()
 
 base_url = "http://127.0.0.1:8000"
 
-print("--- Testing Branch Scoping across Routers ---")
+print("--- Testing Dashboard and Branch Scoping ---")
+
+# Test Root Dashboard GET for Anita and Meena
+for uid in [anita_id, meena_id]:
+    req = urllib.request.Request(f"{base_url}/?acting_as_id={uid}")
+    with urllib.request.urlopen(req) as resp:
+        assert resp.status == 200
+print("✓ Root Dashboard '/' loads successfully for all user roles")
 
 # 1. Header Locked Dropdown for Anita (Branch Staff)
 req = urllib.request.Request(f"{base_url}/requisitions?acting_as_id={anita_id}")

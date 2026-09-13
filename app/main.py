@@ -25,6 +25,7 @@ from app.models import (
     Supplier,
 )
 from app.stock import computed_stock
+from app.routers.auth import router as auth_router
 from app.routers.purchase_orders import router as purchase_orders_router
 from app.routers.requisitions import router as requisitions_router
 from app.routers.goods_receipts import router as goods_receipts_router
@@ -53,6 +54,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Set up Jinja2 templates
 templates = Jinja2Templates(directory="templates")
+app.include_router(auth_router)
 app.include_router(requisitions_router)
 app.include_router(purchase_orders_router)
 app.include_router(goods_receipts_router)
@@ -142,7 +144,7 @@ def read_root(
     if loc_ids is not None:
         tot_req = tot_req.filter(Requisition.location_id.in_(loc_ids))
         tot_po = tot_po.filter(PurchaseOrder.delivery_location_id.in_(loc_ids))
-        tot_grn = tot_grn.filter(GoodsReceiptNote.delivery_location_id.in_(loc_ids))
+        tot_grn = tot_grn.join(PurchaseOrder).filter(PurchaseOrder.delivery_location_id.in_(loc_ids))
 
     context.update(
         {

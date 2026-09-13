@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}HealthPilot Ops — Enterprise ERP{% endblock %}</title>
     
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,19 +15,20 @@
         theme: {
             extend: {
                 colors: {
-                    paper: '#EFF1EA',
-                    ink: '#171A1D',
-                    amber: '#A6642A',
-                    statusGreen: '#2F6845',
-                    statusRed: '#9B3A2E',
-                    statusGrey: '#8A8F87',
+                    paper: '#F4F6F8',
+                    ink: '#0F172A',
+                    amber: '#D97706',
+                    amberHover: '#B45309',
+                    statusGreen: '#15803D',
+                    statusRed: '#B91C1C',
+                    statusGrey: '#64748B',
                 },
                 fontFamily: {
                     serif: ['"Source Serif 4"', 'serif'],
                     sans: ['"IBM Plex Sans"', 'sans-serif'],
                     mono: ['"IBM Plex Mono"', 'monospace'],
                 },
-                borderRadius: { DEFAULT: '2px', lg: '2px', xl: '2px' },
+                borderRadius: { DEFAULT: '4px', lg: '6px', xl: '8px' },
             }
         }
     }
@@ -34,103 +36,152 @@
     
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-paper text-ink font-sans">
-    <div class="flex flex-col h-screen">
-        <!-- Header -->
-        <header class="border-b border-gray-300 px-6 py-3 flex justify-between items-center">
-            <div class="font-serif text-xl">HealthPilot Ops</div>
-            <div class="flex gap-4">
-                {% if acting_user and acting_user.role.value == 'BRANCH_STAFF' and acting_user.home_location %}
-                <select id="location-select" class="border border-ink px-3 py-2 bg-gray-200 text-gray-700 font-medium cursor-not-allowed" disabled data-locked="true" title="Location is locked to your home branch">
-                    <option value="{{ acting_user.home_location.id }}" selected>{{ acting_user.home_location.name }} (Home Branch)</option>
-                </select>
-                {% else %}
-                <select id="location-select" class="border border-ink px-3 py-2 bg-paper text-ink">
-                    {% for loc in locations %}
-                    <option value="{{ loc.id }}">{{ loc.name }}</option>
-                    {% endfor %}
-                </select>
+<body class="bg-paper text-ink font-sans antialiased min-h-screen">
+    <div class="flex flex-col h-screen overflow-hidden">
+        <!-- Modern ERP Header Bar -->
+        <header class="bg-slate-900 text-white px-6 py-2.5 flex justify-between items-center border-b border-slate-800 shadow-md z-20">
+            <div class="flex items-center gap-4">
+                <a href="/" class="flex items-center gap-2 text-white hover:text-amber-400 transition-colors">
+                    <div class="w-8 h-8 rounded bg-amber-600 text-white flex items-center justify-center font-bold font-serif text-lg shadow">H</div>
+                    <span class="font-serif text-xl font-bold tracking-tight">HealthPilot <span class="text-amber-500 font-sans text-xs uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">Ops ERP</span></span>
+                </a>
+                {% if company %}
+                <div class="flex items-center gap-1.5 bg-slate-800 border border-slate-700 text-amber-400 px-3 py-1 rounded text-xs font-mono font-medium">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4m-4 0H9m4 0V7m0 0h4m-4 0H9"></path></svg>
+                    <span>{{ company.name }}</span>
+                </div>
                 {% endif %}
-                
-                <select id="acting-as-select" class="border border-ink px-3 py-2 bg-paper text-ink">
-                    {% for role, role_label in user_roles %}
-                    <optgroup label="{{ role_label }}">
-                        {% for user in app_users if user.role == role %}
-                        <option value="{{ user.id }}" {% if acting_user and user.id == acting_user.id %}selected{% endif %}>{{ user.name }}</option>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                {% if acting_user %}
+                <div class="flex items-center gap-3 bg-slate-800/90 border border-slate-700 px-3 py-1.5 rounded text-xs">
+                    <div class="w-7 h-7 rounded-full bg-amber-600 text-white font-bold flex items-center justify-center text-xs shadow-inner">
+                        {{ acting_user.name[:1] }}
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-semibold text-white leading-tight">{{ acting_user.name }}</span>
+                        <span class="text-[10px] text-slate-400 font-mono">
+                            {{ acting_user.role.value }}
+                            {% if acting_user.home_location %} • {{ acting_user.home_location.name }}{% endif %}
+                        </span>
+                    </div>
+                    <a href="/logout" class="text-xs font-mono text-red-400 hover:text-red-300 hover:underline font-semibold ml-2 border-l border-slate-700 pl-3 py-0.5 transition-colors">Logout</a>
+                </div>
+                {% else %}
+                <a href="/login" class="text-xs font-mono border border-amber-500 text-amber-400 px-3 py-1.5 rounded hover:bg-amber-500/10 font-semibold transition-colors">Login</a>
+                {% endif %}
+
+                {% if acting_user and acting_user.role.value == 'BRANCH_STAFF' and acting_user.home_location %}
+                <div class="relative">
+                    <select id="location-select" class="border border-slate-700 px-3 py-1.5 bg-slate-800 text-slate-300 text-xs font-medium rounded cursor-not-allowed opacity-90" disabled data-locked="true" title="Location locked to your home branch">
+                        <option value="{{ acting_user.home_location.id }}" selected>📍 {{ acting_user.home_location.name }} (Locked)</option>
+                    </select>
+                </div>
+                {% else %}
+                <div class="relative">
+                    <select id="location-select" class="border border-slate-700 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded focus:border-amber-500 focus:outline-none cursor-pointer">
+                        {% for loc in locations %}
+                        <option value="{{ loc.id }}" {% if loc.id == selected_location_id %}selected{% endif %}>📍 {{ loc.name }}</option>
                         {% endfor %}
-                    </optgroup>
-                    {% endfor %}
-                </select>
+                    </select>
+                </div>
+                {% endif %}
             </div>
         </header>
         
         <!-- Body row -->
-        <div class="flex flex-1">
+        <div class="flex flex-1 overflow-hidden">
             <!-- Sidebar -->
-            <nav class="w-56 border-r border-gray-300 p-4 bg-paper">
-                <ul class="space-y-2">
-                    <li>
-                        <a href="/" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path == '/' %}border-l-4 border-amber bg-gray-100{% endif %}">
-                            Dashboard
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/requisitions" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path.startswith('/requisitions') %}border-l-4 border-amber bg-gray-100{% endif %}">
-                            Requisitions
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/purchase-orders" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path.startswith('/purchase-orders') %}border-l-4 border-amber bg-gray-100{% endif %}">
-                            Purchase Orders
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/goods-receipts" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path.startswith('/goods-receipts') %}border-l-4 border-amber bg-gray-100{% endif %}">
-                            Goods Receipts
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/stock-ledger" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path.startswith('/stock-ledger') %}border-l-4 border-amber bg-gray-100{% endif %}">
-                            Stock Ledger
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/supplier-invoices" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path.startswith('/supplier-invoices') %}border-l-4 border-amber bg-gray-100{% endif %}">
-                            Supplier Invoices
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/transfers" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path.startswith('/transfers') %}border-l-4 border-amber bg-gray-100{% endif %}">
-                            Transfers
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/dispensing" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path.startswith('/dispensing') %}border-l-4 border-amber bg-gray-100{% endif %}">
-                            Dispensing
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/traceability" class="block px-4 py-2 text-ink hover:bg-gray-200 {% if request.url.path.startswith('/traceability') %}border-l-4 border-amber bg-gray-100{% endif %}">
-                            Traceability
-                        </a>
-                    </li>
-                </ul>
-                <div class="border-t border-gray-300 mt-8 pt-4 space-y-2">
+            <nav class="w-60 bg-slate-950 border-r border-slate-800 p-4 flex flex-col justify-between overflow-y-auto">
+                <div class="space-y-6">
+                    <div>
+                        <div class="px-3 mb-2 text-[10px] font-mono font-bold tracking-wider text-slate-500 uppercase">Core Supply Chain</div>
+                        <ul class="space-y-1 text-sm font-medium">
+                            <li>
+                                <a href="/" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path == '/' %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
+                                    <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                                    <span>Dashboard</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/requisitions" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/requisitions') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    <span>Requisitions</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/purchase-orders" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/purchase-orders') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                                    <span>Purchase Orders</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/goods-receipts" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/goods-receipts') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                                    <span>Goods Receipts</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <div class="px-3 mb-2 text-[10px] font-mono font-bold tracking-wider text-slate-500 uppercase">Inventory & Operations</div>
+                        <ul class="space-y-1 text-sm font-medium">
+                            <li>
+                                <a href="/stock-ledger" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/stock-ledger') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                                    <span>Stock Ledger</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/supplier-invoices" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/supplier-invoices') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <span>Supplier Invoices</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/transfers" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/transfers') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                    <span>Transfers</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/dispensing" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/dispensing') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L5.6 15.12a2 2 0 00-1.096.185l-1.39.7a2 2 0 00-.914 2.274l.64 2.133a2 2 0 001.9 1.432h14.54a2 2 0 001.9-1.432l.64-2.133a2 2 0 00-.914-2.274l-1.392-.7z"></path></svg>
+                                    <span>Dispensing</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/traceability" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/traceability') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                    <span>Traceability</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-800 pt-4 space-y-2">
+                    <div class="text-[10px] font-mono text-slate-500 uppercase px-1 mb-1">Demo Scenarios</div>
                     <form action="/demo/replay" method="post" onsubmit="return confirm('Replay full demo scenario? Existing transactions will be cleared and replaced with a complete REQ→SALE story.');">
-                        <button type="submit" class="border border-amber text-amber px-3 py-2 text-xs w-full hover:bg-amber/10 transition-colors">Run Full Scenario</button>
+                        <button type="submit" class="border border-amber-600/60 text-amber-400 px-3 py-1.5 text-xs rounded w-full hover:bg-amber-600/20 transition-colors font-mono">⚡ Run Demo Replay</button>
                     </form>
                     <form action="/demo/reset" method="post" onsubmit="return confirm('Reset all demo transactions? Products, suppliers, locations, and users will be kept.');">
-                        <button type="submit" class="border border-statusRed text-statusRed px-3 py-2 text-xs w-full hover:bg-statusRed/10 transition-colors">Reset Demo Data</button>
+                        <button type="submit" class="border border-red-800/60 text-red-400 px-3 py-1.5 text-xs rounded w-full hover:bg-red-900/30 transition-colors font-mono">🗑 Reset Demo Data</button>
                     </form>
                 </div>
             </nav>
             
-            <!-- Main content -->
-            <main class="flex-1 p-6">
+            <!-- Main content container -->
+            <main class="flex-1 p-6 overflow-y-auto bg-slate-50">
                 {% if request.query_params.get('success') %}
-                <div id="flash-success" class="bg-statusGreen/10 border border-statusGreen text-statusGreen px-4 py-2 mb-6 flex items-center justify-between" role="status">
-                    <span>{{ request.query_params.get('success') }}</span>
-                    <button type="button" class="ml-4 text-lg leading-none" aria-label="Dismiss message" onclick="this.parentElement.remove()">×</button>
+                <div id="flash-success" class="bg-emerald-50 border border-emerald-300 text-emerald-800 px-4 py-3 mb-6 rounded flex items-center justify-between shadow-sm" role="status">
+                    <div class="flex items-center gap-2 text-sm font-medium">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        <span>{{ request.query_params.get('success') }}</span>
+                    </div>
+                    <button type="button" class="ml-4 text-gray-400 hover:text-gray-600 text-lg leading-none" aria-label="Dismiss message" onclick="this.parentElement.remove()">×</button>
                 </div>
                 {% endif %}
                 {% block content %}{% endblock %}
@@ -138,33 +189,19 @@
         </div>
     </div>
     <script>
-    const actingAsSelect = document.getElementById('acting-as-select');
     const locationSelect = document.getElementById('location-select');
-
-    for (const select of document.querySelectorAll('#location-select, #acting-as-select')) {
-        const storageKey = `healthpilot:${select.id}`;
+    if (locationSelect && !locationSelect.disabled) {
+        const storageKey = `healthpilot:${locationSelect.id}`;
         const savedValue = localStorage.getItem(storageKey);
-        if (savedValue && select.querySelector(`option[value="${savedValue}"]`) && !select.disabled) {
-            select.value = savedValue;
+        if (savedValue && locationSelect.querySelector(`option[value="${savedValue}"]`)) {
+            locationSelect.value = savedValue;
         }
-        select.addEventListener('change', () => {
-            localStorage.setItem(storageKey, select.value);
+        locationSelect.addEventListener('change', () => {
+            localStorage.setItem(storageKey, locationSelect.value);
             const params = new URLSearchParams(window.location.search);
-            if (select.id === 'acting-as-select') {
-                params.set('acting_as_id', select.value);
-            }
-            if (select.id === 'location-select' && !select.disabled) {
-                params.set('location_id', select.value);
-            }
+            params.set('location_id', locationSelect.value);
             window.location.href = `${window.location.pathname}?${params.toString()}`;
         });
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    const savedActingAs = localStorage.getItem('healthpilot:acting-as-select');
-    if (!params.has('acting_as_id') && savedActingAs && actingAsSelect && actingAsSelect.querySelector(`option[value="${savedActingAs}"]`)) {
-        params.set('acting_as_id', savedActingAs);
-        window.location.replace(`${window.location.pathname}?${params.toString()}`);
     }
     </script>
 </body>

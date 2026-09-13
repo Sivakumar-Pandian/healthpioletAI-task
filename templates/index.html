@@ -1,103 +1,164 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-6">
+<div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
     <div>
-        <h1 class="font-serif text-2xl">Dashboard</h1>
-        <p class="text-sm text-gray-600 mt-1">Acting as {{ active_user.name }} · {{ active_user.role.value.replace('_', ' ').title() }}</p>
+        <h1 class="font-serif text-2xl font-bold text-slate-900">Executive Dashboard</h1>
+        <p class="text-xs text-slate-500 font-mono mt-0.5">Welcome, <span class="text-slate-800 font-semibold">{{ active_user.name }}</span> · <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[11px] uppercase font-bold">{{ active_user.role.value }}</span></p>
+    </div>
+    <div class="flex gap-2">
+        <a href="/requisitions/new" class="bg-amber-600 hover:bg-amber-700 text-white font-medium px-4 py-2 text-xs rounded shadow-sm flex items-center gap-1.5 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <span>New Requisition</span>
+        </a>
     </div>
 </div>
 
-{% if active_user.role.value == 'CENTRAL_PURCHASING' %}
-<section class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-    <a href="/requisitions?status=SUBMITTED" class="border border-ink p-4 hover:bg-ink/5">
-        <span class="block text-3xl font-mono">{{ approval_requisitions|length }}</span>
-        <span>requisitions awaiting your approval</span>
-        <span class="block text-sm text-gray-600 mt-2 underline">Review submitted requisitions →</span>
+{% if active_user.role.value == 'CENTRAL_PURCHASING' or active_user.role.value == 'COMPANY_ADMIN' %}
+<section class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+    <a href="/requisitions?status=SUBMITTED" class="bg-white border border-slate-200 rounded-lg p-5 hover:border-amber-500 hover:shadow-md transition-all group">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold tracking-wider text-slate-400 uppercase">Pending Approvals</span>
+            <span class="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm">!</span>
+        </div>
+        <div class="mt-3 flex items-baseline gap-2">
+            <span class="text-4xl font-mono font-bold text-slate-900">{{ approval_requisitions|length }}</span>
+            <span class="text-xs text-slate-500">requisitions awaiting action</span>
+        </div>
+        <div class="mt-3 text-xs text-amber-600 font-medium group-hover:underline flex items-center gap-1">
+            <span>Review & approve requisitions</span>
+            <span>→</span>
+        </div>
     </a>
-    <div class="border border-ink p-4">
-        <span class="block text-3xl font-mono">{{ ready_purchase_orders|length }}</span>
-        <span>POs awaiting goods receipt</span>
+
+    <div class="bg-white border border-slate-200 rounded-lg p-5">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold tracking-wider text-slate-400 uppercase">Incoming Shipments</span>
+            <span class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">📦</span>
+        </div>
+        <div class="mt-3 flex items-baseline gap-2">
+            <span class="text-4xl font-mono font-bold text-slate-900">{{ ready_purchase_orders|length }}</span>
+            <span class="text-xs text-slate-500">POs pending Goods Receipt</span>
+        </div>
         {% if ready_purchase_orders %}
-        <ul class="mt-2 text-sm space-y-1">
-            {% for purchase_order in ready_purchase_orders %}
-            <li><a href="/purchase-orders/{{ purchase_order.id }}" class="underline">{{ purchase_order.document_no }}</a> · {{ purchase_order.supplier.name }}</li>
+        <ul class="mt-3 text-xs space-y-1.5 border-t border-slate-100 pt-2">
+            {% for purchase_order in ready_purchase_orders[:3] %}
+            <li class="flex items-center justify-between py-1">
+                <a href="/purchase-orders/{{ purchase_order.id }}" class="font-mono text-amber-600 hover:underline font-semibold">{{ purchase_order.document_no }}</a>
+                <span class="text-slate-600">{{ purchase_order.supplier.name }}</span>
+            </li>
             {% endfor %}
         </ul>
         {% else %}
-        <span class="block text-sm text-gray-600 mt-2">None right now.</span>
+        <span class="block text-xs text-slate-400 mt-2">All purchase orders are processed.</span>
         {% endif %}
     </div>
 </section>
 {% elif active_user.role.value == 'BRANCH_STAFF' %}
-<section class="border border-ink p-4 mb-8">
-    <div class="flex items-center justify-between mb-3">
-        <h2 class="font-serif text-xl">Your recent requisitions</h2>
-        <span class="text-sm text-gray-600">{{ branch_location.name if branch_location else 'Your location' }}</span>
+<section class="bg-white border border-slate-200 rounded-lg p-5 mb-8 shadow-sm">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="font-serif text-lg font-bold text-slate-900">Your Branch Requisitions</h2>
+        <span class="text-xs font-mono bg-slate-100 text-slate-700 px-2.5 py-1 rounded font-medium border border-slate-200">📍 {{ branch_location.name if branch_location else 'Home Branch' }}</span>
     </div>
     {% if recent_requisitions %}
     <div class="overflow-x-auto">
-        <table class="w-full border-collapse text-sm">
-            <thead class="border-y border-ink text-left"><tr><th class="py-2 pr-3">Document</th><th class="py-2 pr-3">Product</th><th class="py-2 pr-3 text-right">Quantity</th><th class="py-2">Status</th></tr></thead>
-            <tbody>
+        <table class="w-full text-xs text-left">
+            <thead class="bg-slate-50 border-y border-slate-200 font-mono text-slate-500 uppercase">
+                <tr>
+                    <th class="py-2.5 px-3">Document #</th>
+                    <th class="py-2.5 px-3">Product</th>
+                    <th class="py-2.5 px-3 text-right">Quantity</th>
+                    <th class="py-2.5 px-3">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
                 {% for requisition in recent_requisitions %}
-                <tr class="border-b border-gray-300 cursor-pointer hover:bg-ink/5" data-href="/requisitions/{{ requisition.id }}" onclick="if (!event.target.closest('a, button, form')) window.location.href=this.dataset.href">
-                    <td class="py-2 pr-3 font-mono"><a href="/requisitions/{{ requisition.id }}" class="underline">{{ requisition.document_no }}</a></td>
-                    <td class="py-2 pr-3">{{ requisition.product.name }}</td>
-                    <td class="py-2 pr-3 text-right">{{ requisition.quantity }}</td>
-                    <td class="py-2">{{ requisition.status.value }}</td>
+                <tr class="hover:bg-slate-50/80 cursor-pointer transition-colors" onclick="window.location.href='/requisitions/{{ requisition.id }}'">
+                    <td class="py-2.5 px-3 font-mono font-semibold text-amber-600">{{ requisition.document_no }}</td>
+                    <td class="py-2.5 px-3 font-medium text-slate-800">{{ requisition.product.name }}</td>
+                    <td class="py-2.5 px-3 text-right font-mono font-semibold text-slate-900">{{ requisition.quantity }}</td>
+                    <td class="py-2.5 px-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase
+                            {% if requisition.status.value == 'APPROVED' %}bg-emerald-100 text-emerald-800
+                            {% elif requisition.status.value == 'REJECTED' %}bg-rose-100 text-rose-800
+                            {% else %}bg-amber-100 text-amber-800{% endif %}">
+                            {{ requisition.status.value }}
+                        </span>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
     {% else %}
-    <p class="text-gray-600">No recent requisitions for this location.</p>
-    {% endif %}
-</section>
-{% elif active_user.role.value == 'RECEIVING_STAFF' %}
-<section class="border border-ink p-4 mb-8">
-    <span class="block text-3xl font-mono">{{ ready_purchase_orders|length }}</span>
-    <span>purchase orders ready to receive</span>
-    {% if ready_purchase_orders %}
-    <ul class="mt-2 text-sm space-y-1">
-        {% for purchase_order in ready_purchase_orders %}
-        <li><a href="/purchase-orders/{{ purchase_order.id }}" class="underline">{{ purchase_order.document_no }}</a> · {{ purchase_order.supplier.name }}</li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <span class="block text-sm text-gray-600 mt-2">None right now.</span>
+    <p class="text-xs text-slate-400 py-3">No recent requisitions recorded for this location.</p>
     {% endif %}
 </section>
 {% endif %}
 
-<section>
-    <h2 class="font-serif text-xl mb-3">Operations summary</h2>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div class="border border-gray-300 p-4"><span class="block text-gray-600 text-sm">Requisitions</span><span class="font-mono text-2xl">{{ total_requisitions }}</span></div>
-        <div class="border border-gray-300 p-4"><span class="block text-gray-600 text-sm">Purchase Orders</span><span class="font-mono text-2xl">{{ total_purchase_orders }}</span></div>
-        <div class="border border-gray-300 p-4"><span class="block text-gray-600 text-sm">Goods Receipts</span><span class="font-mono text-2xl">{{ total_goods_receipts }}</span></div>
-        <div class="border border-gray-300 p-4"><span class="block text-gray-600 text-sm">Locations</span><span class="font-mono text-2xl">{{ stock_summary|length }}</span></div>
+<!-- Key Performance Indicators Grid -->
+<section class="mb-8">
+    <h2 class="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-3">Enterprise Key Metrics</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+            <span class="block text-xs text-slate-500 font-medium">Total Requisitions</span>
+            <span class="font-mono text-3xl font-bold text-slate-900 mt-1 block">{{ total_requisitions }}</span>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+            <span class="block text-xs text-slate-500 font-medium">Purchase Orders</span>
+            <span class="font-mono text-3xl font-bold text-slate-900 mt-1 block">{{ total_purchase_orders }}</span>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+            <span class="block text-xs text-slate-500 font-medium">Goods Receipts</span>
+            <span class="font-mono text-3xl font-bold text-slate-900 mt-1 block">{{ total_goods_receipts }}</span>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+            <span class="block text-xs text-slate-500 font-medium">Active Locations</span>
+            <span class="font-mono text-3xl font-bold text-slate-900 mt-1 block">{{ stock_summary|length }}</span>
+        </div>
     </div>
+</section>
 
-    <h2 class="font-serif text-xl mb-3">Current stock by location</h2>
+<!-- Location Stock Summary Table -->
+<section class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="font-serif text-lg font-bold text-slate-900">Inventory Status by Location</h2>
+        <a href="/stock-ledger" class="text-xs font-mono text-amber-600 hover:underline">View Stock Ledger →</a>
+    </div>
     {% if stock_summary %}
     <div class="overflow-x-auto">
-        <table class="w-full border-collapse text-sm">
-            <thead class="border-y border-ink text-left"><tr><th class="py-2 pr-3">Location</th><th class="py-2 pr-3 text-right">Usable</th><th class="py-2 text-right">Quarantined</th></tr></thead>
-            <tbody>
+        <table class="w-full text-xs text-left">
+            <thead class="bg-slate-50 border-y border-slate-200 font-mono text-slate-500 uppercase">
+                <tr>
+                    <th class="py-2.5 px-4">Location Name</th>
+                    <th class="py-2.5 px-4 text-right">Usable Units</th>
+                    <th class="py-2.5 px-4 text-right">Quarantined Units</th>
+                    <th class="py-2.5 px-4 text-center">Health Indicator</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
                 {% for row in stock_summary %}
-                <tr class="border-b border-gray-300">
-                    <td class="py-3 pr-3">{{ row.location.name }}</td>
-                    <td class="py-3 pr-3 text-right text-statusGreen">{{ row.usable }}</td>
-                    <td class="py-3 text-right text-statusRed">{{ row.quarantined }}</td>
+                <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="py-3 px-4 font-semibold text-slate-800 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>{{ row.location.name }}</span>
+                    </td>
+                    <td class="py-3 px-4 text-right font-mono font-bold text-emerald-700 text-sm">{{ row.usable }}</td>
+                    <td class="py-3 px-4 text-right font-mono font-bold text-rose-700 text-sm">{{ row.quarantined }}</td>
+                    <td class="py-3 px-4 text-center">
+                        {% if row.quarantined > 0 %}
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-800">Review Quarantined</span>
+                        {% else %}
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800">Optimal</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
     {% else %}
-    <p class="text-gray-600">No locations configured.</p>
+    <p class="text-xs text-slate-400 py-3">No locations registered.</p>
     {% endif %}
 </section>
 {% endblock %}

@@ -16,6 +16,16 @@ class UserRole(str, enum.Enum):
     BRANCH_STAFF = "BRANCH_STAFF"
     CENTRAL_PURCHASING = "CENTRAL_PURCHASING"
     RECEIVING_STAFF = "RECEIVING_STAFF"
+    COMPANY_ADMIN = "COMPANY_ADMIN"
+
+
+class Company(Base):
+    __tablename__ = "companies"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    code = Column(String, unique=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
 class Product(Base):
@@ -43,6 +53,9 @@ class Location(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     type = Column(Enum(LocationType), nullable=False)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
+
+    company = relationship("Company")
 
 
 class AppUser(Base):
@@ -50,10 +63,26 @@ class AppUser(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=True)
+    password_hash = Column(String, nullable=True)
     role = Column(Enum(UserRole), nullable=False)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
     home_location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)
 
+    company = relationship("Company")
     home_location = relationship("Location", foreign_keys=[home_location_id])
+
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+
+    id = Column(Integer, primary_key=True)
+    session_token = Column(String, unique=True, nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("app_users.id"), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    user = relationship("AppUser")
 
 
 class RequisitionStatus(str, enum.Enum):
