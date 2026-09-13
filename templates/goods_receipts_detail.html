@@ -10,7 +10,7 @@
     <h1 class="font-serif text-2xl">Goods Receipt <span class="font-mono text-xl">{{ goods_receipt.document_no }}</span></h1>
     <div class="flex items-center gap-3 text-sm">
         <a href="/goods-receipts/{{ goods_receipt.id }}/pdf" class="border border-ink px-3 py-1.5 text-xs text-ink hover:bg-gray-200">Download PDF</a>
-        {% if not correction %}
+        {% if not correction and acting_user and acting_user.role.value in ['RECEIVING_STAFF', 'CENTRAL_PURCHASING', 'COMPANY_ADMIN'] %}
         <a href="/goods-receipts/{{ goods_receipt.id }}/correct" class="bg-ink text-white px-4 py-2">Correct this GRN</a>
         {% endif %}
         <a href="/goods-receipts" class="text-ink underline py-2">Back to Goods Receipts</a>
@@ -92,7 +92,7 @@
 <div class="mt-8 max-w-3xl">
     {% if supplier_invoice %}
     <a href="/supplier-invoices/{{ supplier_invoice.id }}" class="text-ink underline">View Supplier Invoice {{ supplier_invoice.document_no }}</a>
-    {% else %}
+    {% elif acting_user and acting_user.role.value in ['CENTRAL_PURCHASING', 'COMPANY_ADMIN'] %}
     <a href="/supplier-invoices/new?grn_id={{ goods_receipt.id }}" class="bg-ink text-white px-4 py-2 text-sm">Record Supplier Invoice for this GRN</a>
     {% endif %}
 </div>

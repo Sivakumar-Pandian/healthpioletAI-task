@@ -52,7 +52,7 @@
     <div class="border-b border-gray-300 py-3 md:col-span-2"><dt class="text-gray-600">Credit Note Reference</dt><dd>{{ supplier_invoice.credit_note_reference or '—' }}</dd></div>
 </dl>
 
-{% if supplier_invoice.status.value == 'DISPUTED' and not supplier_invoice.credit_note_reference %}
+{% if supplier_invoice.status.value == 'DISPUTED' and not supplier_invoice.credit_note_reference and acting_user and acting_user.role.value in ['CENTRAL_PURCHASING', 'COMPANY_ADMIN'] %}
 <form action="/supplier-invoices/{{ supplier_invoice.id }}/resolve" method="post" class="max-w-xl mt-8 space-y-4">
     <label class="block text-sm">
         <span class="block mb-1">Credit Note Reference</span>

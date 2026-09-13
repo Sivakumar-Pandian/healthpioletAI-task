@@ -122,7 +122,17 @@ def create_requisition(
 
 
 @router.post("/{requisition_id}/approve")
-def approve_requisition(requisition_id: int, db: Session = Depends(get_db)):
+def approve_requisition(
+    requisition_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    acting_user = get_acting_user(db, request)
+    if not acting_user or acting_user.role not in (UserRole.CENTRAL_PURCHASING, UserRole.COMPANY_ADMIN):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Only Central Purchasing or Company Admin can approve requisitions.",
+        )
     requisition = get_requisition_or_404(db, requisition_id)
     if requisition.status == RequisitionStatus.SUBMITTED:
         requisition.status = RequisitionStatus.APPROVED
@@ -134,7 +144,17 @@ def approve_requisition(requisition_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{requisition_id}/reject")
-def reject_requisition(requisition_id: int, db: Session = Depends(get_db)):
+def reject_requisition(
+    requisition_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    acting_user = get_acting_user(db, request)
+    if not acting_user or acting_user.role not in (UserRole.CENTRAL_PURCHASING, UserRole.COMPANY_ADMIN):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Only Central Purchasing or Company Admin can reject requisitions.",
+        )
     requisition = get_requisition_or_404(db, requisition_id)
     if requisition.status == RequisitionStatus.SUBMITTED:
         requisition.status = RequisitionStatus.REJECTED

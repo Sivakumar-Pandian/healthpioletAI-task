@@ -72,6 +72,13 @@ def new_purchase_order_form(
     request: Request,
     db: Session = Depends(get_db),
 ):
+    acting_user = get_acting_user(db, request)
+    if not acting_user or acting_user.role not in (UserRole.CENTRAL_PURCHASING, UserRole.COMPANY_ADMIN):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Only Central Purchasing or Company Admin can create purchase orders.",
+        )
+
     requisition = get_requisition_for_po(db, requisition_id)
     context = header_context(db, request)
     context.update(
@@ -94,6 +101,12 @@ def create_purchase_order(
     db: Session = Depends(get_db),
 ):
     acting_user = get_acting_user(db, request)
+    if not acting_user or acting_user.role not in (UserRole.CENTRAL_PURCHASING, UserRole.COMPANY_ADMIN):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Only Central Purchasing or Company Admin can create purchase orders.",
+        )
+
     if acting_user and acting_user.role == UserRole.BRANCH_STAFF and acting_user.home_location_id:
         delivery_location_id = acting_user.home_location_id
 

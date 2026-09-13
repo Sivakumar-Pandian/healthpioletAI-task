@@ -241,6 +241,12 @@ def new_goods_receipt_form(
     request: Request,
     db: Session = Depends(get_db),
 ):
+    acting_user = get_acting_user(db, request)
+    if not acting_user or acting_user.role not in (UserRole.RECEIVING_STAFF, UserRole.CENTRAL_PURCHASING, UserRole.COMPANY_ADMIN):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Only Receiving Staff, Central Purchasing, or Company Admin can receive goods.",
+        )
     purchase_order = get_purchase_order_or_404(db, po_id)
     context = header_context(db, request)
     context.update(
@@ -267,8 +273,13 @@ def create_goods_receipt(
     damage_photo: UploadFile | None = File(None),
     db: Session = Depends(get_db),
 ):
-    purchase_order = get_purchase_order_or_404(db, po_id)
     acting_user = get_acting_user(db, request, acting_as_id=posted_by_id)
+    if not acting_user or acting_user.role not in (UserRole.RECEIVING_STAFF, UserRole.CENTRAL_PURCHASING, UserRole.COMPANY_ADMIN):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Only Receiving Staff, Central Purchasing, or Company Admin can receive goods.",
+        )
+    purchase_order = get_purchase_order_or_404(db, po_id)
     loc_ids = scoped_location_ids(db, acting_user)
     if loc_ids is not None and purchase_order.delivery_location_id not in loc_ids:
         raise HTTPException(status_code=403, detail="Access denied for this branch")
@@ -433,6 +444,12 @@ def correct_goods_receipt_form(
     request: Request,
     db: Session = Depends(get_db),
 ):
+    acting_user = get_acting_user(db, request)
+    if not acting_user or acting_user.role not in (UserRole.RECEIVING_STAFF, UserRole.CENTRAL_PURCHASING, UserRole.COMPANY_ADMIN):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Only Receiving Staff, Central Purchasing, or Company Admin can record GRN corrections.",
+        )
     receipt = get_goods_receipt_or_404(db, receipt_id)
     if get_correction_for_receipt(db, receipt.id):
         raise HTTPException(
@@ -466,6 +483,12 @@ def correct_goods_receipt(
     damage_photo: UploadFile | None = File(None),
     db: Session = Depends(get_db),
 ):
+    acting_user = get_acting_user(db, request, acting_as_id=corrected_by_id)
+    if not acting_user or acting_user.role not in (UserRole.RECEIVING_STAFF, UserRole.CENTRAL_PURCHASING, UserRole.COMPANY_ADMIN):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Only Receiving Staff, Central Purchasing, or Company Admin can record GRN corrections.",
+        )
     receipt = get_goods_receipt_or_404(db, receipt_id)
     purchase_order = receipt.purchase_order
     acting_user = get_acting_user(db, request, acting_as_id=corrected_by_id)

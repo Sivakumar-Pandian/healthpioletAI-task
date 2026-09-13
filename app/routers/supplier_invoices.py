@@ -139,8 +139,13 @@ def new_supplier_invoice_form(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    grn = get_grn_or_404(db, grn_id)
     acting_user = get_acting_user(db, request)
+    if not acting_user or acting_user.role not in (UserRole.CENTRAL_PURCHASING, UserRole.COMPANY_ADMIN):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Only Central Purchasing or Company Admin can process supplier invoices.",
+        )
+    grn = get_grn_or_404(db, grn_id)
     loc_ids = scoped_location_ids(db, acting_user)
     if loc_ids is not None and grn.purchase_order.delivery_location_id not in loc_ids:
         raise HTTPException(status_code=403, detail="Access denied for this branch")
@@ -177,6 +182,12 @@ def create_supplier_invoice(
     invoiced_value: str = Form(""),
     db: Session = Depends(get_db),
 ):
+    acting_user = get_acting_user(db, request)
+    if not acting_user or acting_user.role not in (UserRole.CENTRAL_PURCHASING, UserRole.COMPANY_ADMIN):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Only Central Purchasing or Company Admin can process supplier invoices.",
+        )
     grn = get_grn_or_404(db, grn_id)
     po = db.get(PurchaseOrder, grn.po_id)
     if po is None:
@@ -275,6 +286,12 @@ def resolve_supplier_invoice(
     credit_note_reference: str = Form(""),
     db: Session = Depends(get_db),
 ):
+    acting_user = get_acting_user(db, request)
+    if not acting_user or acting_user.role not in (UserRole.CENTRAL_PURCHASING, UserRole.COMPANY_ADMIN):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Only Central Purchasing or Company Admin can resolve disputed invoices.",
+        )
     invoice = get_invoice_or_404(db, invoice_id)
     acting_user = get_acting_user(db, request)
     loc_ids = scoped_location_ids(db, acting_user)

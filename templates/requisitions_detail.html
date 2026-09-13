@@ -12,7 +12,9 @@
 </div>
 
 <dl class="grid grid-cols-1 md:grid-cols-2 max-w-3xl border-t border-ink text-sm">
+    {% if not (acting_user and acting_user.role.value == 'BRANCH_STAFF') %}
     <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Location</dt><dd>{{ requisition.location.name }}</dd></div>
+    {% endif %}
     <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Product</dt><dd>{{ requisition.product.name }}</dd></div>
     <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Quantity</dt><dd>{{ requisition.quantity }}</dd></div>
     <div class="border-b border-gray-300 py-3"><dt class="text-gray-600">Required Date</dt><dd>{{ requisition.required_date }}</dd></div>
@@ -25,7 +27,7 @@
 <div class="mt-6">
     {% if purchase_order %}
     <a href="/purchase-orders/{{ purchase_order.id }}" class="text-ink underline">View Purchase Order {{ purchase_order.document_no }}</a>
-    {% else %}
+    {% elif acting_user and acting_user.role.value in ['CENTRAL_PURCHASING', 'COMPANY_ADMIN'] %}
     <a href="/purchase-orders/new?requisition_id={{ requisition.id }}" class="bg-ink text-white px-4 py-2 text-sm">Create Purchase Order from this Requisition</a>
     {% endif %}
 </div>
