@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.context import header_context, success_redirect
+from app.context import get_acting_user, header_context, scoped_location_ids, success_redirect
 from app.database import get_db
 from app.document_numbers import next_document_number
 from app.models import (
@@ -16,6 +16,7 @@ from app.models import (
     SalesInvoice,
     StockLedgerEntry,
     StockStatus,
+    UserRole,
 )
 from app.stock import all_batches_at, computed_stock
 
@@ -79,7 +80,7 @@ def dispensing_form_response(
     form_data: dict,
     status_code: int = 422,
 ):
-    ctx = header_context(db)
+    ctx = header_context(db, request)
     ctx.update(dispensing_form_context(db, form_data, error_messages))
     return templates.TemplateResponse(
         request, "dispensing_new.html", ctx, status_code=status_code
@@ -93,10 +94,13 @@ def dispensing_form_response(
 
 @router.get("", response_class=HTMLResponse)
 def list_dispensing(request: Request, db: Session = Depends(get_db)):
-    ctx = header_context(db)
-    ctx["sales"] = (
-        db.query(SalesInvoice).order_by(SalesInvoice.id.desc()).all()
-    )
+    ctx = header_context(db, request)
+    acting_user = ctx["acting_user"]
+    loc_ids = scoped_location_ids(db, acting_user)
+    query = db.query(SalesInvoice).order_by(SalesInvoice.id.desc())
+    if loc_ids is not None:
+        query = query.filter(SalesInvoice.location_id.in_(loc_ids))
+    ctx["sales"] = query.all()
     return templates.TemplateResponse(request, "dispensing_list.html", ctx)
 
 
@@ -107,8 +111,11 @@ def new_dispensing_form(
     product_id: int | None = None,
     db: Session = Depends(get_db),
 ):
-    # Default location_id to the first location if not supplied
-    if location_id is None:
+    ctx = header_context(db, request)
+    acting_user = ctx["acting_user"]
+    if acting_user and acting_user.role == UserRole.BRANCH_STAFF and acting_user.home_location_id:
+        location_id = acting_user.home_location_id
+    elif location_id is None:
         first_loc = db.query(Location).order_by(Location.id).first()
         location_id = first_loc.id if first_loc else None
 
@@ -121,7 +128,6 @@ def new_dispensing_form(
     if location_id is not None and product_id is not None:
         batches = all_batches_at(db, location_id, product_id)
 
-    ctx = header_context(db)
     ctx.update(
         {
             "locations": db.query(Location).order_by(Location.id).all(),
@@ -160,6 +166,10 @@ def create_dispensing(
     dispensed_by_id: str = Form(""),
     db: Session = Depends(get_db),
 ):
+    acting_user = get_acting_user(db, request)
+    if acting_user and acting_user.role == UserRole.BRANCH_STAFF and acting_user.home_location_id:
+        location_id = str(acting_user.home_location_id)
+
     form_data = {
         "location_id": location_id,
         "product_id": product_id,
@@ -320,7 +330,14 @@ def dispensing_detail(
     db: Session = Depends(get_db),
 ):
     sale = get_sale_or_404(db, sale_id)
-    ctx = header_context(db)
+    ctx = header_context(db, request)
+    acting_user = ctx["acting_user"]
+    loc_ids = scoped_location_ids(db, acting_user)
+    if loc_ids is not None and sale.location_id not in loc_ids:
+        raise HTTPException(
+            status_code=403, detail="Forbidden: You do not have access to this sales invoice"
+        )
+
     ctx["sale"] = sale
     grn = (
         db.query(GoodsReceiptNote)
@@ -339,9 +356,17 @@ from app.pdf_export import sales_invoice_pdf
 @router.get("/{sale_id}/pdf")
 def download_sales_invoice_pdf(
     sale_id: int,
+    request: Request,
     db: Session = Depends(get_db),
 ):
     sale = get_sale_or_404(db, sale_id)
+    acting_user = get_acting_user(db, request)
+    loc_ids = scoped_location_ids(db, acting_user)
+    if loc_ids is not None and sale.location_id not in loc_ids:
+        raise HTTPException(
+            status_code=403, detail="Forbidden: You do not have access to this sales invoice"
+        )
+
     pdf_bytes = sales_invoice_pdf(sale)
     return Response(
         content=pdf_bytes,

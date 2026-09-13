@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.context import header_context
+from app.context import header_context, scoped_location_ids
 from app.database import get_db
 from app.models import GoodsReceiptNote, StockLedgerEntry
 
@@ -18,6 +18,13 @@ def stock_ledger(
     batch_number: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
+    context = header_context(db, request)
+    acting_user = context["acting_user"]
+    loc_ids = scoped_location_ids(db, acting_user)
+
+    if loc_ids is not None:
+        location_id = loc_ids[0]
+
     query = db.query(StockLedgerEntry)
     if location_id is not None:
         query = query.filter(StockLedgerEntry.location_id == location_id)
@@ -43,7 +50,6 @@ def stock_ledger(
         for receipt in db.query(GoodsReceiptNote).all()
     }
 
-    context = header_context(db)
     context.update(
         {
             "ledger_rows": ledger_rows,

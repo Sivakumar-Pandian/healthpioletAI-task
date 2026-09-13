@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.context import header_context, success_redirect
+from app.context import get_acting_user, header_context, scoped_location_ids, success_redirect
 from app.database import get_db
 from app.document_numbers import next_document_number
 from app.models import (
@@ -17,6 +17,7 @@ from app.models import (
     StockStatus,
     StockTransfer,
     StockTransferStatus,
+    UserRole,
 )
 from app.stock import computed_stock, usable_batches_at
 
@@ -44,7 +45,7 @@ def transfer_form_response(
     status_code: int = 422,
 ):
     """Render the new-transfer form with error messages and pre-populated fields."""
-    ctx = header_context(db)
+    ctx = header_context(db, request)
     locations = db.query(Location).order_by(Location.id).all()
     products = db.query(Product).order_by(Product.id).all()
 
@@ -79,10 +80,16 @@ def transfer_form_response(
 
 @router.get("", response_class=HTMLResponse)
 def list_transfers(request: Request, db: Session = Depends(get_db)):
-    ctx = header_context(db)
-    ctx["transfers"] = (
-        db.query(StockTransfer).order_by(StockTransfer.id.desc()).all()
-    )
+    ctx = header_context(db, request)
+    acting_user = ctx["acting_user"]
+    loc_ids = scoped_location_ids(db, acting_user)
+    query = db.query(StockTransfer).order_by(StockTransfer.id.desc())
+    if loc_ids is not None:
+        query = query.filter(
+            (StockTransfer.source_location_id.in_(loc_ids))
+            | (StockTransfer.destination_location_id.in_(loc_ids))
+        )
+    ctx["transfers"] = query.all()
     return templates.TemplateResponse(request, "transfers_list.html", ctx)
 
 
@@ -93,6 +100,11 @@ def new_transfer_form(
     product_id: int | None = None,
     db: Session = Depends(get_db),
 ):
+    ctx = header_context(db, request)
+    acting_user = ctx["acting_user"]
+    if acting_user and acting_user.role == UserRole.BRANCH_STAFF and acting_user.home_location_id:
+        source_location_id = acting_user.home_location_id
+
     locations = db.query(Location).order_by(Location.id).all()
     products = db.query(Product).order_by(Product.id).all()
 
@@ -100,7 +112,6 @@ def new_transfer_form(
     if source_location_id is not None and product_id is not None:
         batches = usable_batches_at(db, source_location_id, product_id)
 
-    ctx = header_context(db)
     ctx.update(
         {
             "locations": locations,
@@ -131,6 +142,10 @@ def create_transfer(
     dispatched_by_id: str = Form(""),
     db: Session = Depends(get_db),
 ):
+    acting_user = get_acting_user(db, request)
+    if acting_user and acting_user.role == UserRole.BRANCH_STAFF and acting_user.home_location_id:
+        source_location_id = str(acting_user.home_location_id)
+
     form_data = {
         "source_location_id": source_location_id,
         "destination_location_id": destination_location_id,
@@ -266,10 +281,21 @@ def create_transfer(
 @router.post("/{transfer_id}/receive")
 def receive_transfer(
     transfer_id: int,
+    request: Request,
     received_by_id: str = Form(""),
     db: Session = Depends(get_db),
 ):
     transfer = get_transfer_or_404(db, transfer_id)
+    acting_user = get_acting_user(db, request)
+    loc_ids = scoped_location_ids(db, acting_user)
+    if loc_ids is not None:
+        if (
+            transfer.source_location_id not in loc_ids
+            and transfer.destination_location_id not in loc_ids
+        ):
+            raise HTTPException(
+                status_code=403, detail="Forbidden: You do not have access to this transfer"
+            )
 
     if transfer.status != StockTransferStatus.DISPATCHED:
         raise HTTPException(
@@ -324,7 +350,18 @@ def transfer_detail(
     db: Session = Depends(get_db),
 ):
     transfer = get_transfer_or_404(db, transfer_id)
-    ctx = header_context(db)
+    ctx = header_context(db, request)
+    acting_user = ctx["acting_user"]
+    loc_ids = scoped_location_ids(db, acting_user)
+    if loc_ids is not None:
+        if (
+            transfer.source_location_id not in loc_ids
+            and transfer.destination_location_id not in loc_ids
+        ):
+            raise HTTPException(
+                status_code=403, detail="Forbidden: You do not have access to this transfer"
+            )
+
     ctx["transfer"] = transfer
     grn = (
         db.query(GoodsReceiptNote)

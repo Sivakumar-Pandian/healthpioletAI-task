@@ -1,9 +1,14 @@
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.context import header_context, success_redirect
+from app.context import (
+    get_acting_user,
+    header_context,
+    scoped_location_ids,
+    success_redirect,
+)
 from app.database import get_db
 from app.document_numbers import next_document_number
 from app.models import (
@@ -11,18 +16,14 @@ from app.models import (
     PurchaseOrder,
     SupplierInvoice,
     SupplierInvoiceStatus,
+    UserRole,
 )
+from app.pdf_export import supplier_invoice_pdf
 from app.stock import effective_accepted_quantity
+from app.traceability import build_chain
 
 router = APIRouter(prefix="/supplier-invoices", tags=["supplier-invoices"])
 templates = Jinja2Templates(directory="templates")
-
-
-def get_invoice_or_404(db: Session, invoice_id: int):
-    invoice = db.get(SupplierInvoice, invoice_id)
-    if invoice is None:
-        raise HTTPException(status_code=404, detail="Supplier invoice not found")
-    return invoice
 
 
 def get_grn_or_404(db: Session, grn_id: int):
@@ -30,6 +31,13 @@ def get_grn_or_404(db: Session, grn_id: int):
     if grn is None:
         raise HTTPException(status_code=404, detail="Goods receipt note not found")
     return grn
+
+
+def get_invoice_or_404(db: Session, invoice_id: int):
+    invoice = db.get(SupplierInvoice, invoice_id)
+    if invoice is None:
+        raise HTTPException(status_code=404, detail="Supplier invoice not found")
+    return invoice
 
 
 def get_invoice_for_grn(db: Session, grn_id: int):
@@ -42,8 +50,8 @@ def get_invoice_for_grn(db: Session, grn_id: int):
 
 def invoice_form_data(invoiced_quantity="", invoiced_value=""):
     return {
-        "invoiced_quantity": invoiced_quantity,
-        "invoiced_value": invoiced_value,
+        "invoiced_quantity": str(invoiced_quantity),
+        "invoiced_value": str(invoiced_value),
     }
 
 
@@ -55,17 +63,12 @@ def invoice_form_response(
     form_data: dict,
     status_code: int = 422,
 ):
-    po = grn.purchase_order
-    effective_accepted = effective_accepted_quantity(db, grn)
-    context = header_context(db)
+    context = header_context(db, request)
     context.update(
         {
             "goods_receipt": grn,
-            "purchase_order": po,
-            "effective_accepted": effective_accepted,
-            "expected_payable": round(
-                effective_accepted * po.unit_price * (1 + po.tax_percent / 100), 2
-            ),
+            "purchase_order": grn.purchase_order,
+            "effective_accepted": effective_accepted_quantity(db, grn),
             "error_messages": error_messages,
             "form_data": form_data,
         }
@@ -80,34 +83,34 @@ def invoice_form_response(
 
 def parse_invoice_quantity(value):
     try:
-        quantity = int(value)
+        parsed = int(value)
     except (TypeError, ValueError):
         raise HTTPException(
             status_code=422,
             detail="Please enter a whole number for invoiced quantity.",
         )
-    if quantity < 0:
+    if parsed < 0:
         raise HTTPException(
             status_code=422,
-            detail="Please enter zero or a positive number for invoiced quantity.",
+            detail="Invoiced quantity cannot be negative.",
         )
-    return quantity
+    return parsed
 
 
 def parse_invoice_value(value):
     try:
-        invoice_value = float(value)
+        parsed = float(value)
     except (TypeError, ValueError):
         raise HTTPException(
             status_code=422,
-            detail="Please enter a number for invoiced value.",
+            detail="Please enter a valid amount for invoiced value.",
         )
-    if invoice_value < 0:
+    if parsed < 0:
         raise HTTPException(
             status_code=422,
-            detail="Please enter zero or a positive number for invoiced value.",
+            detail="Invoiced value cannot be negative.",
         )
-    return invoice_value
+    return parsed
 
 
 def friendly_error_messages(detail):
@@ -118,13 +121,16 @@ def friendly_error_messages(detail):
 
 @router.get("", response_class=HTMLResponse)
 def list_supplier_invoices(request: Request, db: Session = Depends(get_db)):
-    context = header_context(db)
-    context["supplier_invoices"] = (
-        db.query(SupplierInvoice).order_by(SupplierInvoice.id).all()
-    )
-    return templates.TemplateResponse(
-        request, "supplier_invoices_list.html", context
-    )
+    context = header_context(db, request)
+    acting_user = context["acting_user"]
+    loc_ids = scoped_location_ids(db, acting_user)
+
+    query = db.query(SupplierInvoice).order_by(SupplierInvoice.id)
+    if loc_ids is not None:
+        query = query.join(PurchaseOrder).filter(PurchaseOrder.delivery_location_id.in_(loc_ids))
+
+    context["supplier_invoices"] = query.all()
+    return templates.TemplateResponse(request, "supplier_invoices_list.html", context)
 
 
 @router.get("/new", response_class=HTMLResponse)
@@ -134,6 +140,11 @@ def new_supplier_invoice_form(
     db: Session = Depends(get_db),
 ):
     grn = get_grn_or_404(db, grn_id)
+    acting_user = get_acting_user(db, request)
+    loc_ids = scoped_location_ids(db, acting_user)
+    if loc_ids is not None and grn.purchase_order.delivery_location_id not in loc_ids:
+        raise HTTPException(status_code=403, detail="Access denied for this branch")
+
     if get_invoice_for_grn(db, grn.id):
         raise HTTPException(
             status_code=422,
@@ -170,6 +181,12 @@ def create_supplier_invoice(
     po = db.get(PurchaseOrder, grn.po_id)
     if po is None:
         raise HTTPException(status_code=422, detail="Purchase order not found")
+
+    acting_user = get_acting_user(db, request)
+    loc_ids = scoped_location_ids(db, acting_user)
+    if loc_ids is not None and po.delivery_location_id not in loc_ids:
+        raise HTTPException(status_code=403, detail="Access denied for this branch")
+
     form_data = invoice_form_data(invoiced_quantity, invoiced_value)
 
     if get_invoice_for_grn(db, grn.id):
@@ -224,9 +241,6 @@ def create_supplier_invoice(
     )
 
 
-from app.traceability import build_chain
-
-
 @router.get("/{invoice_id}", response_class=HTMLResponse)
 def supplier_invoice_detail(
     invoice_id: int,
@@ -234,7 +248,12 @@ def supplier_invoice_detail(
     db: Session = Depends(get_db),
 ):
     invoice = get_invoice_or_404(db, invoice_id)
-    context = header_context(db)
+    context = header_context(db, request)
+    acting_user = context["acting_user"]
+    loc_ids = scoped_location_ids(db, acting_user)
+    if loc_ids is not None and invoice.purchase_order.delivery_location_id not in loc_ids:
+        raise HTTPException(status_code=403, detail="Access denied for this branch")
+
     context.update(
         {
             "supplier_invoice": invoice,
@@ -252,10 +271,16 @@ def supplier_invoice_detail(
 @router.post("/{invoice_id}/resolve")
 def resolve_supplier_invoice(
     invoice_id: int,
+    request: Request,
     credit_note_reference: str = Form(""),
     db: Session = Depends(get_db),
 ):
     invoice = get_invoice_or_404(db, invoice_id)
+    acting_user = get_acting_user(db, request)
+    loc_ids = scoped_location_ids(db, acting_user)
+    if loc_ids is not None and invoice.purchase_order.delivery_location_id not in loc_ids:
+        raise HTTPException(status_code=403, detail="Access denied for this branch")
+
     if invoice.status != SupplierInvoiceStatus.DISPUTED:
         raise HTTPException(
             status_code=422,
@@ -277,16 +302,18 @@ def resolve_supplier_invoice(
     )
 
 
-from fastapi import Response
-from app.pdf_export import supplier_invoice_pdf
-
-
 @router.get("/{invoice_id}/pdf")
 def download_supplier_invoice_pdf(
     invoice_id: int,
+    request: Request,
     db: Session = Depends(get_db),
 ):
     invoice = get_invoice_or_404(db, invoice_id)
+    acting_user = get_acting_user(db, request)
+    loc_ids = scoped_location_ids(db, acting_user)
+    if loc_ids is not None and invoice.purchase_order.delivery_location_id not in loc_ids:
+        raise HTTPException(status_code=403, detail="Access denied for this branch")
+
     pdf_bytes = supplier_invoice_pdf(invoice)
     return Response(
         content=pdf_bytes,

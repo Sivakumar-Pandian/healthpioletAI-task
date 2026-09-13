@@ -51,6 +51,9 @@ class AppUser(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     role = Column(Enum(UserRole), nullable=False)
+    home_location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)
+
+    home_location = relationship("Location", foreign_keys=[home_location_id])
 
 
 class RequisitionStatus(str, enum.Enum):

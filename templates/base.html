@@ -40,17 +40,23 @@
         <header class="border-b border-gray-300 px-6 py-3 flex justify-between items-center">
             <div class="font-serif text-xl">HealthPilot Ops</div>
             <div class="flex gap-4">
+                {% if acting_user and acting_user.role.value == 'BRANCH_STAFF' and acting_user.home_location %}
+                <select id="location-select" class="border border-ink px-3 py-2 bg-gray-200 text-gray-700 font-medium cursor-not-allowed" disabled data-locked="true" title="Location is locked to your home branch">
+                    <option value="{{ acting_user.home_location.id }}" selected>{{ acting_user.home_location.name }} (Home Branch)</option>
+                </select>
+                {% else %}
                 <select id="location-select" class="border border-ink px-3 py-2 bg-paper text-ink">
                     {% for loc in locations %}
                     <option value="{{ loc.id }}">{{ loc.name }}</option>
                     {% endfor %}
                 </select>
+                {% endif %}
                 
                 <select id="acting-as-select" class="border border-ink px-3 py-2 bg-paper text-ink">
                     {% for role, role_label in user_roles %}
                     <optgroup label="{{ role_label }}">
                         {% for user in app_users if user.role == role %}
-                        <option value="{{ user.id }}">{{ user.name }}</option>
+                        <option value="{{ user.id }}" {% if acting_user and user.id == acting_user.id %}selected{% endif %}>{{ user.name }}</option>
                         {% endfor %}
                     </optgroup>
                     {% endfor %}
@@ -132,47 +138,33 @@
         </div>
     </div>
     <script>
-    const dashboardPath = window.location.pathname === '/';
     const actingAsSelect = document.getElementById('acting-as-select');
     const locationSelect = document.getElementById('location-select');
 
     for (const select of document.querySelectorAll('#location-select, #acting-as-select')) {
         const storageKey = `healthpilot:${select.id}`;
         const savedValue = localStorage.getItem(storageKey);
-        if (savedValue && select.querySelector(`option[value="${savedValue}"]`)) {
+        if (savedValue && select.querySelector(`option[value="${savedValue}"]`) && !select.disabled) {
             select.value = savedValue;
         }
         select.addEventListener('change', () => {
             localStorage.setItem(storageKey, select.value);
-            if (dashboardPath) {
-                const params = new URLSearchParams(window.location.search);
-                if (select.id === 'acting-as-select') {
-                    params.set('acting_as_id', select.value);
-                }
-                if (select.id === 'location-select') {
-                    params.set('location_id', select.value);
-                }
-                window.location.href = `/?${params.toString()}`;
+            const params = new URLSearchParams(window.location.search);
+            if (select.id === 'acting-as-select') {
+                params.set('acting_as_id', select.value);
             }
+            if (select.id === 'location-select' && !select.disabled) {
+                params.set('location_id', select.value);
+            }
+            window.location.href = `${window.location.pathname}?${params.toString()}`;
         });
     }
 
-    if (dashboardPath) {
-        const params = new URLSearchParams(window.location.search);
-        const savedActingAs = localStorage.getItem('healthpilot:acting-as-select');
-        const savedLocation = localStorage.getItem('healthpilot:location-select');
-        let dashboardContextChanged = false;
-        if (!params.has('acting_as_id') && savedActingAs && actingAsSelect.querySelector(`option[value="${savedActingAs}"]`)) {
-            params.set('acting_as_id', savedActingAs);
-            dashboardContextChanged = true;
-        }
-        if (!params.has('location_id') && savedLocation && locationSelect.querySelector(`option[value="${savedLocation}"]`)) {
-            params.set('location_id', savedLocation);
-            dashboardContextChanged = true;
-        }
-        if (dashboardContextChanged) {
-            window.location.replace(`/?${params.toString()}`);
-        }
+    const params = new URLSearchParams(window.location.search);
+    const savedActingAs = localStorage.getItem('healthpilot:acting-as-select');
+    if (!params.has('acting_as_id') && savedActingAs && actingAsSelect && actingAsSelect.querySelector(`option[value="${savedActingAs}"]`)) {
+        params.set('acting_as_id', savedActingAs);
+        window.location.replace(`${window.location.pathname}?${params.toString()}`);
     }
     </script>
 </body>

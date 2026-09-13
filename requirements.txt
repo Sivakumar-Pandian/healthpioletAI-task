@@ -3,3 +3,5 @@ uvicorn[standard]
 sqlalchemy
 jinja2
 python-multipart
+fpdf2
+Pillow

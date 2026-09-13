@@ -3,7 +3,12 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.context import header_context, success_redirect
+from app.context import (
+    get_acting_user,
+    header_context,
+    scoped_location_ids,
+    success_redirect,
+)
 from app.database import get_db
 from app.document_numbers import next_document_number
 from app.models import (
@@ -13,7 +18,9 @@ from app.models import (
     PurchaseOrder,
     Requisition,
     RequisitionStatus,
+    UserRole,
 )
+from app.traceability import build_chain
 
 router = APIRouter(prefix="/requisitions", tags=["requisitions"])
 templates = Jinja2Templates(directory="templates")
@@ -32,8 +39,14 @@ def list_requisitions(
     status: str | None = None,
     db: Session = Depends(get_db),
 ):
-    context = header_context(db)
+    context = header_context(db, request)
+    acting_user = context["acting_user"]
+    loc_ids = scoped_location_ids(db, acting_user)
+
     query = db.query(Requisition).order_by(Requisition.id)
+    if loc_ids is not None:
+        query = query.filter(Requisition.location_id.in_(loc_ids))
+
     selected_status = status.upper() if status else None
     valid_statuses = {item.value for item in RequisitionStatus}
     if selected_status in valid_statuses:
@@ -45,13 +58,14 @@ def list_requisitions(
 
 @router.get("/new", response_class=HTMLResponse)
 def new_requisition_form(request: Request, db: Session = Depends(get_db)):
-    context = header_context(db)
+    context = header_context(db, request)
     context["products"] = db.query(Product).order_by(Product.name).all()
     return templates.TemplateResponse(request, "requisitions_new.html", context)
 
 
 @router.post("/new")
 def create_requisition(
+    request: Request,
     product_id: int = Form(...),
     quantity: int = Form(...),
     required_date: str = Form(...),
@@ -60,9 +74,14 @@ def create_requisition(
     requester_id: int = Form(...),
     db: Session = Depends(get_db),
 ):
+    acting_user = get_acting_user(db, request, acting_as_id=requester_id)
+
+    # Force location_id for BRANCH_STAFF users to their home branch server-side
+    if acting_user and acting_user.role == UserRole.BRANCH_STAFF and acting_user.home_location_id:
+        location_id = acting_user.home_location_id
+
     if quantity < 1:
         raise HTTPException(status_code=422, detail="Quantity must be at least one")
-
     if db.get(Product, product_id) is None:
         raise HTTPException(status_code=422, detail="Product not found")
     if db.get(Location, location_id) is None:
@@ -112,8 +131,6 @@ def reject_requisition(requisition_id: int, db: Session = Depends(get_db)):
     )
 
 
-from app.traceability import build_chain
-
 @router.get("/{requisition_id}", response_class=HTMLResponse)
 def requisition_detail(
     requisition_id: int,
@@ -121,7 +138,13 @@ def requisition_detail(
     db: Session = Depends(get_db),
 ):
     requisition = get_requisition_or_404(db, requisition_id)
-    context = header_context(db)
+    context = header_context(db, request)
+    acting_user = context["acting_user"]
+    loc_ids = scoped_location_ids(db, acting_user)
+
+    if loc_ids is not None and requisition.location_id not in loc_ids:
+        raise HTTPException(status_code=403, detail="Access denied for this branch")
+
     context["requisition"] = requisition
     context["purchase_order"] = (
         db.query(PurchaseOrder)

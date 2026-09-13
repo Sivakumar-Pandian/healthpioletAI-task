@@ -6,7 +6,7 @@ from fastapi.requests import Request
 from sqlalchemy.orm import Session
 
 from app.database import Base, SessionLocal, engine, get_db
-from app.context import header_context, success_redirect
+from app.context import header_context, scoped_location_ids, success_redirect
 from app.models import (
     AppUser,
     GoodsReceiptNote,
@@ -71,16 +71,17 @@ def read_root(
     location_id: int | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
-    active_user = (
-        db.get(AppUser, acting_as_id)
-        if acting_as_id is not None
-        else db.query(AppUser).order_by(AppUser.id).first()
-    )
+    context = header_context(db, request, acting_as_id=acting_as_id)
+    active_user = context["acting_user"]
     if active_user is None:
         raise HTTPException(status_code=500, detail="No application users configured")
 
+    loc_ids = scoped_location_ids(db, active_user)
+
     branch_location = None
-    if location_id is not None:
+    if active_user.role == UserRole.BRANCH_STAFF and active_user.home_location_id:
+        branch_location = db.get(Location, active_user.home_location_id)
+    elif location_id is not None:
         branch_location = db.get(Location, location_id)
     if branch_location is None:
         branch_location = (
@@ -91,35 +92,38 @@ def read_root(
         )
 
     goods_receipt_po_ids = db.query(GoodsReceiptNote.po_id)
-    ready_purchase_orders = (
-        db.query(PurchaseOrder)
-        .filter(
-            PurchaseOrder.status.in_(
-                [PurchaseOrderStatus.OPEN, PurchaseOrderStatus.PARTIALLY_RECEIVED]
-            ),
-            ~PurchaseOrder.id.in_(goods_receipt_po_ids),
-        )
-        .order_by(PurchaseOrder.id)
-        .all()
+    po_query = db.query(PurchaseOrder).filter(
+        PurchaseOrder.status.in_(
+            [PurchaseOrderStatus.OPEN, PurchaseOrderStatus.PARTIALLY_RECEIVED]
+        ),
+        ~PurchaseOrder.id.in_(goods_receipt_po_ids),
     )
-    approval_requisitions = (
-        db.query(Requisition)
-        .filter(Requisition.status == RequisitionStatus.SUBMITTED)
-        .order_by(Requisition.id)
-        .all()
+    if loc_ids is not None:
+        po_query = po_query.filter(PurchaseOrder.delivery_location_id.in_(loc_ids))
+    ready_purchase_orders = po_query.order_by(PurchaseOrder.id).all()
+
+    req_query = db.query(Requisition).filter(
+        Requisition.status == RequisitionStatus.SUBMITTED
     )
+    if loc_ids is not None:
+        req_query = req_query.filter(Requisition.location_id.in_(loc_ids))
+    approval_requisitions = req_query.order_by(Requisition.id).all()
+
     recent_requisitions = []
-    if active_user.role == UserRole.BRANCH_STAFF and branch_location is not None:
-        recent_requisitions = (
-            db.query(Requisition)
-            .filter(Requisition.location_id == branch_location.id)
-            .order_by(Requisition.id.desc())
-            .limit(5)
-            .all()
-        )
+    if branch_location is not None:
+        rec_query = db.query(Requisition)
+        if loc_ids is not None:
+            rec_query = rec_query.filter(Requisition.location_id.in_(loc_ids))
+        else:
+            rec_query = rec_query.filter(Requisition.location_id == branch_location.id)
+        recent_requisitions = rec_query.order_by(Requisition.id.desc()).limit(5).all()
+
+    loc_query = db.query(Location).order_by(Location.id)
+    if loc_ids is not None:
+        loc_query = loc_query.filter(Location.id.in_(loc_ids))
 
     stock_summary = []
-    for location in db.query(Location).order_by(Location.id).all():
+    for location in loc_query.all():
         stock_summary.append(
             {
                 "location": location,
@@ -132,7 +136,14 @@ def read_root(
             }
         )
 
-    context = header_context(db)
+    tot_req = db.query(Requisition)
+    tot_po = db.query(PurchaseOrder)
+    tot_grn = db.query(GoodsReceiptNote)
+    if loc_ids is not None:
+        tot_req = tot_req.filter(Requisition.location_id.in_(loc_ids))
+        tot_po = tot_po.filter(PurchaseOrder.delivery_location_id.in_(loc_ids))
+        tot_grn = tot_grn.filter(GoodsReceiptNote.delivery_location_id.in_(loc_ids))
+
     context.update(
         {
             "active_user": active_user,
@@ -140,9 +151,9 @@ def read_root(
             "approval_requisitions": approval_requisitions,
             "ready_purchase_orders": ready_purchase_orders,
             "recent_requisitions": recent_requisitions,
-            "total_requisitions": db.query(Requisition).count(),
-            "total_purchase_orders": db.query(PurchaseOrder).count(),
-            "total_goods_receipts": db.query(GoodsReceiptNote).count(),
+            "total_requisitions": tot_req.count(),
+            "total_purchase_orders": tot_po.count(),
+            "total_goods_receipts": tot_grn.count(),
             "stock_summary": stock_summary,
         }
     )
@@ -155,7 +166,7 @@ def read_root(
 
 @app.get("/master-data", response_class=HTMLResponse)
 def master_data(request: Request, db: Session = Depends(get_db)):
-    context = header_context(db)
+    context = header_context(db, request)
     context.update(
         {
             "products": db.query(Product).order_by(Product.id).all(),

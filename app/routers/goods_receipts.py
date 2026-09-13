@@ -5,7 +5,12 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.context import header_context, success_redirect
+from app.context import (
+    get_acting_user,
+    header_context,
+    scoped_location_ids,
+    success_redirect,
+)
 from app.database import get_db
 from app.document_numbers import next_document_number
 from app.models import (
@@ -18,6 +23,7 @@ from app.models import (
     StockLedgerEntry,
     StockStatus,
     SupplierInvoice,
+    UserRole,
 )
 from app.pdf_export import grn_pdf
 from app.stock import computed_stock
@@ -217,10 +223,15 @@ def friendly_error_messages(detail):
 
 @router.get("", response_class=HTMLResponse)
 def list_goods_receipts(request: Request, db: Session = Depends(get_db)):
-    context = header_context(db)
-    context["goods_receipts"] = (
-        db.query(GoodsReceiptNote).order_by(GoodsReceiptNote.id).all()
-    )
+    context = header_context(db, request)
+    acting_user = context["acting_user"]
+    loc_ids = scoped_location_ids(db, acting_user)
+
+    query = db.query(GoodsReceiptNote).order_by(GoodsReceiptNote.id)
+    if loc_ids is not None:
+        query = query.join(PurchaseOrder).filter(PurchaseOrder.delivery_location_id.in_(loc_ids))
+
+    context["goods_receipts"] = query.all()
     return templates.TemplateResponse(request, "goods_receipts_list.html", context)
 
 
@@ -231,32 +242,12 @@ def new_goods_receipt_form(
     db: Session = Depends(get_db),
 ):
     purchase_order = get_purchase_order_or_404(db, po_id)
-    if get_receipt_for_po(db, purchase_order.id):
-        return receipt_form_response(
-            request,
-            db,
-            purchase_order,
-            ["This purchase order already has a goods receipt and cannot be received again."],
-            receipt_form_data(),
-        )
-    if purchase_order.status not in (
-        PurchaseOrderStatus.OPEN,
-        PurchaseOrderStatus.PARTIALLY_RECEIVED,
-    ):
-        return receipt_form_response(
-            request,
-            db,
-            purchase_order,
-            ["This purchase order is already closed and cannot receive goods."],
-            receipt_form_data(),
-        )
-
-    context = header_context(db)
+    context = header_context(db, request)
     context.update(
         {
             "purchase_order": purchase_order,
-            "form_data": receipt_form_data(),
             "error_messages": [],
+            "form_data": receipt_form_data(),
         }
     )
     return templates.TemplateResponse(request, "goods_receipts_new.html", context)
@@ -277,6 +268,10 @@ def create_goods_receipt(
     db: Session = Depends(get_db),
 ):
     purchase_order = get_purchase_order_or_404(db, po_id)
+    acting_user = get_acting_user(db, request, acting_as_id=posted_by_id)
+    loc_ids = scoped_location_ids(db, acting_user)
+    if loc_ids is not None and purchase_order.delivery_location_id not in loc_ids:
+        raise HTTPException(status_code=403, detail="Access denied for this branch")
     form_data = receipt_form_data(
         batch_number,
         expiry_date,
@@ -473,6 +468,10 @@ def correct_goods_receipt(
 ):
     receipt = get_goods_receipt_or_404(db, receipt_id)
     purchase_order = receipt.purchase_order
+    acting_user = get_acting_user(db, request, acting_as_id=corrected_by_id)
+    loc_ids = scoped_location_ids(db, acting_user)
+    if loc_ids is not None and purchase_order.delivery_location_id not in loc_ids:
+        raise HTTPException(status_code=403, detail="Access denied for this branch")
     form_data = correction_form_data(
         accepted_quantity,
         damaged_quantity,
@@ -624,7 +623,13 @@ def goods_receipt_detail(
 ):
     receipt = get_goods_receipt_or_404(db, receipt_id)
     purchase_order = receipt.purchase_order
-    context = header_context(db)
+    context = header_context(db, request)
+    acting_user = context["acting_user"]
+    loc_ids = scoped_location_ids(db, acting_user)
+
+    if loc_ids is not None and purchase_order.delivery_location_id not in loc_ids:
+        raise HTTPException(status_code=403, detail="Access denied for this branch")
+
     context.update(
         {
             "goods_receipt": receipt,
@@ -659,9 +664,15 @@ def goods_receipt_detail(
 @router.get("/{receipt_id}/pdf")
 def download_goods_receipt_pdf(
     receipt_id: int,
+    request: Request,
     db: Session = Depends(get_db),
 ):
+    acting_user = get_acting_user(db, request)
+    loc_ids = scoped_location_ids(db, acting_user)
     receipt = get_goods_receipt_or_404(db, receipt_id)
+    if loc_ids is not None and receipt.purchase_order.delivery_location_id not in loc_ids:
+        raise HTTPException(status_code=403, detail="Access denied for this branch")
+
     correction = get_correction_for_receipt(db, receipt.id)
     pdf_bytes = grn_pdf(receipt, correction)
     return Response(

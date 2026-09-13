@@ -1,20 +1,28 @@
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.context import header_context, success_redirect
+from app.context import (
+    get_acting_user,
+    header_context,
+    scoped_location_ids,
+    success_redirect,
+)
 from app.database import get_db
 from app.document_numbers import next_document_number
 from app.models import (
+    GoodsReceiptNote,
     Location,
     PurchaseOrder,
     PurchaseOrderStatus,
     Requisition,
     RequisitionStatus,
     Supplier,
-    GoodsReceiptNote,
+    UserRole,
 )
+from app.pdf_export import purchase_order_pdf
+from app.traceability import build_chain
 
 router = APIRouter(prefix="/purchase-orders", tags=["purchase-orders"])
 templates = Jinja2Templates(directory="templates")
@@ -25,9 +33,15 @@ def get_requisition_for_po(db: Session, requisition_id: int):
     if requisition is None:
         raise HTTPException(status_code=404, detail="Requisition not found")
     if requisition.status != RequisitionStatus.APPROVED:
-        raise HTTPException(status_code=422, detail="Only approved requisitions can be converted to purchase orders")
+        raise HTTPException(
+            status_code=422,
+            detail="Only approved requisitions can be converted to purchase orders",
+        )
     if db.query(PurchaseOrder).filter(PurchaseOrder.requisition_id == requisition_id).first():
-        raise HTTPException(status_code=422, detail="A purchase order already exists for this requisition")
+        raise HTTPException(
+            status_code=422,
+            detail="A purchase order already exists for this requisition",
+        )
     return requisition
 
 
@@ -40,8 +54,15 @@ def get_purchase_order_or_404(db: Session, purchase_order_id: int):
 
 @router.get("", response_class=HTMLResponse)
 def list_purchase_orders(request: Request, db: Session = Depends(get_db)):
-    context = header_context(db)
-    context["purchase_orders"] = db.query(PurchaseOrder).order_by(PurchaseOrder.id).all()
+    context = header_context(db, request)
+    acting_user = context["acting_user"]
+    loc_ids = scoped_location_ids(db, acting_user)
+
+    query = db.query(PurchaseOrder).order_by(PurchaseOrder.id)
+    if loc_ids is not None:
+        query = query.filter(PurchaseOrder.delivery_location_id.in_(loc_ids))
+
+    context["purchase_orders"] = query.all()
     return templates.TemplateResponse(request, "purchase_orders_list.html", context)
 
 
@@ -52,7 +73,7 @@ def new_purchase_order_form(
     db: Session = Depends(get_db),
 ):
     requisition = get_requisition_for_po(db, requisition_id)
-    context = header_context(db)
+    context = header_context(db, request)
     context.update(
         {
             "requisition": requisition,
@@ -64,6 +85,7 @@ def new_purchase_order_form(
 
 @router.post("/new")
 def create_purchase_order(
+    request: Request,
     requisition_id: int = Form(...),
     supplier_id: int = Form(...),
     unit_price: float = Form(...),
@@ -71,6 +93,10 @@ def create_purchase_order(
     delivery_location_id: int = Form(...),
     db: Session = Depends(get_db),
 ):
+    acting_user = get_acting_user(db, request)
+    if acting_user and acting_user.role == UserRole.BRANCH_STAFF and acting_user.home_location_id:
+        delivery_location_id = acting_user.home_location_id
+
     requisition = get_requisition_for_po(db, requisition_id)
     if unit_price < 0 or tax_percent < 0:
         raise HTTPException(status_code=422, detail="Price and tax percent must be non-negative")
@@ -103,19 +129,20 @@ def create_purchase_order(
     )
 
 
-from fastapi import Response
-from app.pdf_export import purchase_order_pdf
-from app.traceability import build_chain
-
-
 @router.get("/{purchase_order_id}", response_class=HTMLResponse)
 def purchase_order_detail(
     purchase_order_id: int,
     request: Request,
     db: Session = Depends(get_db),
 ):
-    context = header_context(db)
+    context = header_context(db, request)
+    acting_user = context["acting_user"]
+    loc_ids = scoped_location_ids(db, acting_user)
+
     purchase_order = get_purchase_order_or_404(db, purchase_order_id)
+    if loc_ids is not None and purchase_order.delivery_location_id not in loc_ids:
+        raise HTTPException(status_code=403, detail="Access denied for this branch")
+
     context["purchase_order"] = purchase_order
     context["goods_receipt"] = (
         db.query(GoodsReceiptNote)
@@ -129,9 +156,15 @@ def purchase_order_detail(
 @router.get("/{purchase_order_id}/pdf")
 def download_purchase_order_pdf(
     purchase_order_id: int,
+    request: Request,
     db: Session = Depends(get_db),
 ):
+    acting_user = get_acting_user(db, request)
+    loc_ids = scoped_location_ids(db, acting_user)
     po = get_purchase_order_or_404(db, purchase_order_id)
+    if loc_ids is not None and po.delivery_location_id not in loc_ids:
+        raise HTTPException(status_code=403, detail="Access denied for this branch")
+
     pdf_bytes = purchase_order_pdf(po)
     return Response(
         content=pdf_bytes,
