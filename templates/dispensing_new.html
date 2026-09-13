@@ -18,7 +18,7 @@
 {% endif %}
 
 <form id="dispensing-form" action="/dispensing/new" method="post" class="max-w-xl space-y-5">
-    <input id="dispensed-by-id" type="hidden" name="dispensed_by_id">
+    <input id="dispensed-by-id" type="hidden" name="dispensed_by_id" value="{{ acting_user.id if acting_user else '' }}">
 
     <label class="block text-sm">
         <span class="block mb-1">Location</span>
@@ -174,10 +174,14 @@ const currency = new Intl.NumberFormat('en-IN', { style: 'currency', currency: '
 
 // Sync dispensed-by from acting-as header
 function syncDispensedBy() {
-    dispensedByInput.value = actingAsSelect.value;
+    if (dispensedByInput && actingAsSelect) {
+        dispensedByInput.value = actingAsSelect.value;
+    }
 }
 syncDispensedBy();
-actingAsSelect.addEventListener('change', syncDispensedBy);
+if (actingAsSelect) {
+    actingAsSelect.addEventListener('change', syncDispensedBy);
+}
 
 // Update qty hint when batch selection changes
 function updateQtyHint() {

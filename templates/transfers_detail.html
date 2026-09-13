@@ -83,9 +83,9 @@
 const receiveBtn = document.getElementById('receive-btn');
 const receiveByInput = document.getElementById('receive-by-detail');
 const actingAsSelect = document.getElementById('acting-as-select');
-if (receiveBtn && receiveByInput && actingAsSelect) {
+if (receiveBtn && receiveByInput) {
     receiveBtn.addEventListener('click', function() {
-        receiveByInput.value = actingAsSelect.value;
+        receiveByInput.value = actingAsSelect ? actingAsSelect.value : "{{ acting_user.id if acting_user else '' }}";
     });
 }
 </script>

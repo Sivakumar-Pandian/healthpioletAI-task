@@ -81,7 +81,7 @@ document.querySelectorAll('.confirm-receipt-btn').forEach(function(btn) {
         const inputId = btn.dataset.inputId;
         const input = document.getElementById(inputId);
         const actingAs = document.getElementById('acting-as-select');
-        if (input && actingAs) input.value = actingAs.value;
+        if (input) input.value = actingAs ? actingAs.value : "{{ acting_user.id if acting_user else '' }}";
     });
 });
 </script>

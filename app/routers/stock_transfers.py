@@ -166,6 +166,8 @@ def create_transfer(
     dst_id = parse_int(destination_location_id, "destination location")
     prod_id = parse_int(product_id, "product")
     by_id = parse_int(dispatched_by_id, "dispatched by")
+    if by_id is None and acting_user:
+        by_id = acting_user.id
 
     errors = []
 
@@ -178,7 +180,7 @@ def create_transfer(
     if not batch_number.strip():
         errors.append("Please select a batch number.")
     if by_id is None or db.get(AppUser, by_id) is None:
-        errors.append("Please select the person dispatching this transfer from the Acting as menu.")
+        errors.append("Please select the person dispatching this transfer.")
 
     qty = None
     try:
@@ -306,12 +308,12 @@ def receive_transfer(
     try:
         by_id = int(received_by_id)
     except (TypeError, ValueError):
-        by_id = None
+        by_id = acting_user.id if acting_user else None
 
     if by_id is None or db.get(AppUser, by_id) is None:
         raise HTTPException(
             status_code=422,
-            detail="Please select the person confirming receipt from the Acting as menu.",
+            detail="Please select the person confirming receipt.",
         )
 
     transfer.received_by_id = by_id

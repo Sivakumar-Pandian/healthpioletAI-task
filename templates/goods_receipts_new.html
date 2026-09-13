@@ -30,7 +30,7 @@
 
 <form id="goods-receipt-form" action="/goods-receipts/new" method="post" enctype="multipart/form-data" class="max-w-xl space-y-5">
     <input type="hidden" name="po_id" value="{{ purchase_order.id }}">
-    <input id="posted-by-id" type="hidden" name="posted_by_id">
+    <input id="posted-by-id" type="hidden" name="posted_by_id" value="{{ acting_user.id if acting_user else '' }}">
 
     <label class="block text-sm">
         <span class="block mb-1">Batch Number</span>
@@ -88,7 +88,9 @@ const orderedQuantity = {{ purchase_order.quantity }};
 const quantityInputs = [physicalInput, acceptedInput, damagedInput, missingInput];
 
 function syncPostedBy() {
-    postedByInput.value = actingAsSelect.value;
+    if (postedByInput && actingAsSelect) {
+        postedByInput.value = actingAsSelect.value;
+    }
 }
 
 function numberValue(input) {
@@ -144,7 +146,9 @@ function validateQuantities() {
 }
 
 syncPostedBy();
-actingAsSelect.addEventListener('change', syncPostedBy);
+if (actingAsSelect) {
+    actingAsSelect.addEventListener('change', syncPostedBy);
+}
 quantityInputs.forEach((input) => {
     input.addEventListener('input', validateQuantities);
 });

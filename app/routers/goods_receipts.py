@@ -319,13 +319,13 @@ def create_goods_receipt(
     try:
         posting_user_id = int(posted_by_id)
     except (TypeError, ValueError):
-        posting_user_id = None
+        posting_user_id = acting_user.id if acting_user else None
     if posting_user_id is None or db.get(AppUser, posting_user_id) is None:
         return receipt_form_response(
             request,
             db,
             purchase_order,
-            ["Please select the person receiving this shipment from the Acting as menu."],
+            ["Please select the person receiving this shipment."],
             form_data,
         )
 
@@ -500,13 +500,13 @@ def correct_goods_receipt(
     try:
         correcting_user_id = int(corrected_by_id)
     except (TypeError, ValueError):
-        correcting_user_id = None
+        correcting_user_id = acting_user.id if acting_user else None
     if correcting_user_id is None or db.get(AppUser, correcting_user_id) is None:
         return correction_form_response(
             request,
             db,
             receipt,
-            ["Please select the person posting this correction from the Acting as menu."],
+            ["Please select the person posting this correction."],
             form_data,
         )
 

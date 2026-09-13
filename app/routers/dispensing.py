@@ -198,6 +198,8 @@ def create_dispensing(
     loc_id = parse_int(location_id)
     prod_id = parse_int(product_id)
     by_id = parse_int(dispensed_by_id)
+    if by_id is None and acting_user:
+        by_id = acting_user.id
 
     errors = []
 
@@ -209,7 +211,7 @@ def create_dispensing(
         errors.append("Please select a batch number.")
     if by_id is None or db.get(AppUser, by_id) is None:
         errors.append(
-            "Please select the person dispensing from the Acting as menu."
+            "Please select the person dispensing."
         )
 
     qty = parse_int(quantity)

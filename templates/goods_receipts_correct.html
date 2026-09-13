@@ -33,7 +33,7 @@
 </div>
 
 <form id="grn-correction-form" action="/goods-receipts/{{ goods_receipt.id }}/correct" method="post" enctype="multipart/form-data" class="max-w-xl space-y-5">
-    <input id="corrected-by-id" type="hidden" name="corrected_by_id">
+    <input id="corrected-by-id" type="hidden" name="corrected_by_id" value="{{ acting_user.id if acting_user else '' }}">
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <label class="block text-sm">
@@ -82,7 +82,9 @@ const orderedQuantity = {{ purchase_order.quantity }};
 const quantityInputs = [acceptedInput, damagedInput, missingInput];
 
 function syncCorrectedBy() {
-    correctedByInput.value = actingAsSelect.value;
+    if (correctedByInput && actingAsSelect) {
+        correctedByInput.value = actingAsSelect.value;
+    }
 }
 
 function numberValue(input) {
@@ -137,7 +139,9 @@ function validateQuantities() {
 }
 
 syncCorrectedBy();
-actingAsSelect.addEventListener('change', syncCorrectedBy);
+if (actingAsSelect) {
+    actingAsSelect.addEventListener('change', syncCorrectedBy);
+}
 quantityInputs.forEach((input) => {
     input.addEventListener('input', validateQuantities);
 });

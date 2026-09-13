@@ -70,11 +70,25 @@ def create_requisition(
     quantity: int = Form(...),
     required_date: str = Form(...),
     reason: str = Form(""),
-    location_id: int = Form(...),
-    requester_id: int = Form(...),
+    location_id: int | None = Form(None),
+    requester_id: int | None = Form(None),
     db: Session = Depends(get_db),
 ):
     acting_user = get_acting_user(db, request, acting_as_id=requester_id)
+
+    if requester_id is None and acting_user:
+        requester_id = acting_user.id
+
+    if location_id is None:
+        if acting_user and acting_user.home_location_id:
+            location_id = acting_user.home_location_id
+        else:
+            context = header_context(db, request)
+            locations = context.get("locations", [])
+            if locations:
+                location_id = locations[0].id
+            else:
+                raise HTTPException(status_code=422, detail="Location required")
 
     # Force location_id for BRANCH_STAFF users to their home branch server-side
     if acting_user and acting_user.role == UserRole.BRANCH_STAFF and acting_user.home_location_id:
@@ -86,7 +100,7 @@ def create_requisition(
         raise HTTPException(status_code=422, detail="Product not found")
     if db.get(Location, location_id) is None:
         raise HTTPException(status_code=422, detail="Location not found")
-    if db.get(AppUser, requester_id) is None:
+    if requester_id is None or db.get(AppUser, requester_id) is None:
         raise HTTPException(status_code=422, detail="Requester not found")
 
     requisition = Requisition(

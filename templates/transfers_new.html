@@ -18,7 +18,7 @@
 {% endif %}
 
 <form id="transfer-form" action="/transfers/new" method="post" class="max-w-xl space-y-5">
-    <input id="dispatched-by-id" type="hidden" name="dispatched_by_id">
+    <input id="dispatched-by-id" type="hidden" name="dispatched_by_id" value="{{ acting_user.id if acting_user else '' }}">
 
     <label class="block text-sm">
         <span class="block mb-1">Source Location</span>
@@ -122,10 +122,14 @@ const actingAsSelect = document.getElementById('acting-as-select');
 
 // Sync dispatched-by-id from acting-as header selector
 function syncDispatchedBy() {
-    dispatchedByInput.value = actingAsSelect.value;
+    if (dispatchedByInput && actingAsSelect) {
+        dispatchedByInput.value = actingAsSelect.value;
+    }
 }
 syncDispatchedBy();
-actingAsSelect.addEventListener('change', syncDispatchedBy);
+if (actingAsSelect) {
+    actingAsSelect.addEventListener('change', syncDispatchedBy);
+}
 
 // Update qty max/hint when batch changes
 function updateQtyHint() {
