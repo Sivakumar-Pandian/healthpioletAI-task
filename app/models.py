@@ -227,6 +227,31 @@ class StockTransfer(Base):
     received_by = relationship("AppUser", foreign_keys=[received_by_id])
 
 
+class SalesInvoice(Base):
+    __tablename__ = "sales_invoices"
+
+    id = Column(Integer, primary_key=True)
+    document_no = Column(String, unique=True, nullable=False)
+    location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    batch_number = Column(String, nullable=False)
+    quantity = Column(Integer, nullable=False)
+    unit_price = Column(Float, nullable=False)
+    tax_percent = Column(Float, nullable=False)
+    value_before_tax = Column(Float, nullable=False)
+    tax_amount = Column(Float, nullable=False)
+    total_amount = Column(Float, nullable=False)
+    cost_of_goods = Column(Float, nullable=False)
+    payment_mode = Column(String, nullable=False)
+    prescription_reference = Column(String, nullable=True)
+    dispensed_by_id = Column(Integer, ForeignKey("app_users.id"), nullable=False)
+    dispensed_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    location = relationship("Location")
+    product = relationship("Product")
+    dispensed_by = relationship("AppUser")
+
+
 class StockLedgerEntry(Base):
     __tablename__ = "stock_ledger_entries"
 

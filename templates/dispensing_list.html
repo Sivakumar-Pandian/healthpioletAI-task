@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Dispensing / Sales</h1>
+    <a href="/dispensing/new" class="bg-ink text-white px-4 py-2 text-sm">New Dispensing</a>
+</div>
+
+{% if sales %}
+<div class="overflow-x-auto">
+    <table class="w-full border-collapse text-sm">
+        <thead class="border-y border-ink text-left">
+            <tr>
+                <th class="py-2 pr-3">Document</th>
+                <th class="py-2 pr-3">Location</th>
+                <th class="py-2 pr-3">Product</th>
+                <th class="py-2 pr-3">Batch</th>
+                <th class="py-2 pr-3 text-right">Qty</th>
+                <th class="py-2 pr-3 text-right">Total (₹)</th>
+                <th class="py-2 pr-3">Payment</th>
+                <th class="py-2 pr-3">Prescription Ref</th>
+                <th class="py-2 pr-3">Dispensed By</th>
+                <th class="py-2">Dispensed At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sale in sales %}
+            <tr class="border-b border-gray-300 cursor-pointer hover:bg-ink/5"
+                data-href="/dispensing/{{ sale.id }}"
+                onclick="if (!event.target.closest('a, button, form')) window.location.href=this.dataset.href">
+                <td class="py-3 pr-3 font-mono">
+                    <a href="/dispensing/{{ sale.id }}" class="text-ink underline">{{ sale.document_no }}</a>
+                </td>
+                <td class="py-3 pr-3">{{ sale.location.name }}</td>
+                <td class="py-3 pr-3">{{ sale.product.name }}</td>
+                <td class="py-3 pr-3 font-mono">{{ sale.batch_number }}</td>
+                <td class="py-3 pr-3 text-right">{{ sale.quantity }}</td>
+                <td class="py-3 pr-3 text-right">{{ "%.2f"|format(sale.total_amount) }}</td>
+                <td class="py-3 pr-3">{{ sale.payment_mode }}</td>
+                <td class="py-3 pr-3">
+                    {% if sale.prescription_reference %}{{ sale.prescription_reference }}{% else %}—{% endif %}
+                </td>
+                <td class="py-3 pr-3">{{ sale.dispensed_by.name }}</td>
+                <td class="py-3">{{ sale.dispensed_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-gray-600">No dispensing records yet — <a href="/dispensing/new" class="text-ink underline">record one</a>.</p>
+{% endif %}
+{% endblock %}

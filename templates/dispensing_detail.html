@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav class="text-sm text-gray-600 mb-2" aria-label="Breadcrumb">
+    <a href="/dispensing" class="underline">Dispensing</a>
+    <span class="mx-2">/</span>
+    <span>{{ sale.document_no }}</span>
+</nav>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">Sales Invoice <span class="font-mono text-xl">{{ sale.document_no }}</span></h1>
+    <a href="/dispensing" class="text-ink underline text-sm py-2">Back to Dispensing</a>
+</div>
+
+<dl class="grid grid-cols-1 md:grid-cols-2 max-w-3xl border-t border-ink text-sm">
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Document</dt>
+        <dd class="font-mono">{{ sale.document_no }}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Location</dt>
+        <dd>{{ sale.location.name }}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Product</dt>
+        <dd>{{ sale.product.name }}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Batch Number</dt>
+        <dd class="font-mono">{{ sale.batch_number }}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Quantity</dt>
+        <dd>{{ sale.quantity }}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Payment Mode</dt>
+        <dd>{{ sale.payment_mode }}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Prescription Reference</dt>
+        <dd>{% if sale.prescription_reference %}{{ sale.prescription_reference }}{% else %}—{% endif %}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3">
+        <dt class="text-gray-600">Dispensed By</dt>
+        <dd>{{ sale.dispensed_by.name }}</dd>
+    </div>
+    <div class="border-b border-gray-300 py-3 md:col-span-2">
+        <dt class="text-gray-600">Dispensed At</dt>
+        <dd>{{ sale.dispensed_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+    </div>
+</dl>
+
+<div class="mt-8 max-w-3xl">
+    <h2 class="font-serif text-xl mb-3">Financials</h2>
+    <dl class="border-y border-ink text-sm">
+        <div class="flex justify-between border-b border-gray-300 py-3">
+            <dt class="text-gray-600">Unit Price</dt>
+            <dd class="font-mono">₹{{ "%.2f"|format(sale.unit_price) }}</dd>
+        </div>
+        <div class="flex justify-between border-b border-gray-300 py-3">
+            <dt class="text-gray-600">Tax Percent</dt>
+            <dd class="font-mono">{{ "%.2f"|format(sale.tax_percent) }}%</dd>
+        </div>
+        <div class="flex justify-between border-b border-gray-300 py-3">
+            <dt class="text-gray-600">Value Before Tax</dt>
+            <dd class="font-mono">₹{{ "%.2f"|format(sale.value_before_tax) }}</dd>
+        </div>
+        <div class="flex justify-between border-b border-gray-300 py-3">
+            <dt class="text-gray-600">Tax Amount</dt>
+            <dd class="font-mono">₹{{ "%.2f"|format(sale.tax_amount) }}</dd>
+        </div>
+        <div class="flex justify-between border-b border-gray-300 py-3 font-medium">
+            <dt>Total Amount</dt>
+            <dd class="font-mono text-statusGreen">₹{{ "%.2f"|format(sale.total_amount) }}</dd>
+        </div>
+        <div class="flex justify-between py-3">
+            <dt class="text-gray-600">Cost Basis <span class="font-normal text-xs">(internal — qty × purchase price)</span></dt>
+            <dd class="font-mono text-statusRed">₹{{ "%.2f"|format(sale.cost_of_goods) }}</dd>
+        </div>
+    </dl>
+
+    <div class="border border-gray-300 p-4 mt-4 text-sm">
+        <span class="block text-gray-600 mb-1">Margin</span>
+        {% set margin = sale.total_amount - sale.cost_of_goods %}
+        <span class="text-xl font-mono {% if margin >= 0 %}text-statusGreen{% else %}text-statusRed{% endif %}">
+            ₹{{ "%.2f"|format(margin) }}
+        </span>
+        {% if sale.cost_of_goods > 0 %}
+        <span class="text-xs text-gray-500 ml-2">({{ "%.1f"|format(margin / sale.cost_of_goods * 100) }}% on cost)</span>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

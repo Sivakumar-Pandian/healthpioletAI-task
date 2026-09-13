@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="font-serif text-2xl">New Dispensing / Sale</h1>
+    <a href="/dispensing" class="text-ink underline text-sm">← Back to list</a>
+</div>
+
+{% if error_messages %}
+<div role="alert" class="border border-statusRed text-statusRed px-4 py-3 max-w-xl mb-6 text-sm">
+    <p class="font-medium mb-1">Please check the dispensing details.</p>
+    <ul class="list-disc ml-5 mt-1 space-y-1">
+        {% for message in error_messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<form id="dispensing-form" action="/dispensing/new" method="post" class="max-w-xl space-y-5">
+    <input id="dispensed-by-id" type="hidden" name="dispensed_by_id">
+
+    <label class="block text-sm">
+        <span class="block mb-1">Location</span>
+        <select id="location-select" name="location_id"
+            class="w-full border border-ink px-3 py-2 bg-paper" required>
+            <option value="">— select location —</option>
+            {% for loc in locations %}
+            <option value="{{ loc.id }}"
+                {% if form_data.location_id|string == loc.id|string %}selected{% endif %}>
+                {{ loc.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label class="block text-sm">
+        <span class="block mb-1">Product</span>
+        <select id="product-select" name="product_id"
+            class="w-full border border-ink px-3 py-2 bg-paper" required>
+            <option value="">— select product —</option>
+            {% for product in products %}
+            <option value="{{ product.id }}"
+                data-price="{{ product.purchase_price }}"
+                data-tax="{{ product.tax_percent }}"
+                {% if form_data.product_id|string == product.id|string %}selected{% endif %}>
+                {{ product.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    {# Batch picker — populated server-side after location+product chosen #}
+    <div>
+        <label class="block text-sm mb-1">Batch</label>
+        {% if batches %}
+        <select id="batch-select" name="batch_number"
+            class="w-full border border-ink px-3 py-2 bg-paper font-mono" required>
+            <option value="">— select batch —</option>
+            {% for batch_no, usable_qty, quarantined_qty in batches %}
+            {% if usable_qty > 0 %}
+            {# Selectable usable batch #}
+            <option value="{{ batch_no }}"
+                data-max="{{ usable_qty }}"
+                {% if form_data.batch_number == batch_no %}selected{% endif %}>
+                {{ batch_no }} ({{ usable_qty }} available)
+            </option>
+            {% else %}
+            {# Quarantined-only — shown disabled with explanatory label #}
+            <option value="" disabled>
+                {{ batch_no }} — {{ quarantined_qty }} quarantined, not eligible
+            </option>
+            {% endif %}
+            {% endfor %}
+        </select>
+        {% else %}
+        <p class="text-gray-500 text-xs">
+            {% if form_data.location_id and form_data.product_id %}
+            No stock found for the selected location and product.
+            {% else %}
+            Select a location and product above, then click <strong>Load Batches</strong>.
+            {% endif %}
+        </p>
+        <select id="batch-select" name="batch_number"
+            class="w-full border border-ink px-3 py-2 bg-paper font-mono" disabled>
+            <option value="">— no batches available —</option>
+        </select>
+        {% endif %}
+        <span id="qty-hint" class="text-xs text-gray-500 mt-1 block"></span>
+    </div>
+
+    {# Reload form to repopulate batches server-side #}
+    <div class="text-sm">
+        <button type="button" id="load-batches-btn"
+            class="border border-ink px-3 py-2 text-ink text-sm">
+            Load Batches
+        </button>
+        <span class="text-gray-500 ml-2">Reload batch options for the selected location &amp; product</span>
+    </div>
+
+    <label class="block text-sm">
+        <span class="block mb-1">Quantity</span>
+        <input id="qty-input" name="quantity" type="number" min="1"
+            value="{{ form_data.quantity }}"
+            class="w-full border border-ink px-3 py-2 bg-paper" required>
+    </label>
+
+    <div class="grid grid-cols-2 gap-4">
+        <label class="block text-sm">
+            <span class="block mb-1">Unit Price (₹)</span>
+            <input id="unit-price" name="unit_price" type="number" min="0" step="0.01"
+                value="{{ form_data.unit_price }}"
+                class="w-full border border-ink px-3 py-2 bg-paper" required>
+        </label>
+        <label class="block text-sm">
+            <span class="block mb-1">Tax Percent (%)</span>
+            <input id="tax-percent" name="tax_percent" type="number" min="0" step="0.01"
+                value="{{ form_data.tax_percent }}"
+                class="w-full border border-ink px-3 py-2 bg-paper" required>
+        </label>
+    </div>
+
+    {# Live totals panel — mirrors the PO form pattern #}
+    <dl class="border-y border-ink py-3 text-sm space-y-2">
+        <div class="flex justify-between">
+            <dt>Value Before Tax</dt>
+            <dd id="value-before-tax" class="font-mono">₹0.00</dd>
+        </div>
+        <div class="flex justify-between">
+            <dt>Tax Amount</dt>
+            <dd id="tax-amount" class="font-mono">₹0.00</dd>
+        </div>
+        <div class="flex justify-between font-medium">
+            <dt>Total Amount</dt>
+            <dd id="total-amount" class="font-mono text-statusGreen">₹0.00</dd>
+        </div>
+    </dl>
+
+    <label class="block text-sm">
+        <span class="block mb-1">Payment Mode</span>
+        <select name="payment_mode" class="w-full border border-ink px-3 py-2 bg-paper" required>
+            {% for mode in payment_modes %}
+            <option value="{{ mode }}"
+                {% if form_data.payment_mode == mode %}selected{% endif %}>
+                {{ mode }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label class="block text-sm">
+        <span class="block mb-1">Prescription Reference <span class="text-gray-500">(optional)</span></span>
+        <input name="prescription_reference" type="text"
+            value="{{ form_data.prescription_reference }}"
+            placeholder="e.g. RX-88213"
+            class="w-full border border-ink px-3 py-2 bg-paper">
+    </label>
+
+    <button type="submit" class="bg-ink text-white px-4 py-2 text-sm">Record Dispensing</button>
+</form>
+
+<script>
+const locationSelect = document.getElementById('location-select');
+const productSelect = document.getElementById('product-select');
+const loadBatchesBtn = document.getElementById('load-batches-btn');
+const batchSelect = document.getElementById('batch-select');
+const qtyInput = document.getElementById('qty-input');
+const qtyHint = document.getElementById('qty-hint');
+const unitPriceInput = document.getElementById('unit-price');
+const taxPercentInput = document.getElementById('tax-percent');
+const dispensedByInput = document.getElementById('dispensed-by-id');
+const actingAsSelect = document.getElementById('acting-as-select');
+const currency = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
+
+// Sync dispensed-by from acting-as header
+function syncDispensedBy() {
+    dispensedByInput.value = actingAsSelect.value;
+}
+syncDispensedBy();
+actingAsSelect.addEventListener('change', syncDispensedBy);
+
+// Update qty hint when batch selection changes
+function updateQtyHint() {
+    if (!batchSelect) return;
+    const selected = batchSelect.options[batchSelect.selectedIndex];
+    if (selected && selected.dataset.max) {
+        const max = parseInt(selected.dataset.max, 10);
+        qtyInput.max = max;
+        qtyHint.textContent = `Maximum available: ${max}`;
+    } else {
+        qtyInput.removeAttribute('max');
+        qtyHint.textContent = '';
+    }
+}
+if (batchSelect) {
+    batchSelect.addEventListener('change', updateQtyHint);
+    updateQtyHint();
+}
+
+// Live totals calculation (mirrors PO form pattern)
+function updateTotals() {
+    const qty = Number(qtyInput.value) || 0;
+    const unitPrice = Number(unitPriceInput.value) || 0;
+    const taxPct = Number(taxPercentInput.value) || 0;
+    const valueBeforeTax = qty * unitPrice;
+    const taxAmount = valueBeforeTax * taxPct / 100;
+    const totalAmount = valueBeforeTax + taxAmount;
+    document.getElementById('value-before-tax').textContent = currency.format(valueBeforeTax);
+    document.getElementById('tax-amount').textContent = currency.format(taxAmount);
+    document.getElementById('total-amount').textContent = currency.format(totalAmount);
+}
+[qtyInput, unitPriceInput, taxPercentInput].forEach(el => el.addEventListener('input', updateTotals));
+updateTotals();
+
+// When product changes, pre-fill unit price and tax percent from data attributes
+productSelect.addEventListener('change', function() {
+    const selected = productSelect.options[productSelect.selectedIndex];
+    if (selected && selected.dataset.price) {
+        unitPriceInput.value = selected.dataset.price;
+        taxPercentInput.value = selected.dataset.tax;
+        updateTotals();
+    }
+    // Also trigger batch reload if location is already selected
+    const loc = locationSelect.value;
+    const prod = productSelect.value;
+    if (loc && prod) {
+        window.location.href = `/dispensing/new?location_id=${loc}&product_id=${prod}`;
+    }
+});
+
+// Trigger reload when location changes too
+locationSelect.addEventListener('change', function() {
+    const loc = locationSelect.value;
+    const prod = productSelect.value;
+    if (loc && prod) {
+        window.location.href = `/dispensing/new?location_id=${loc}&product_id=${prod}`;
+    }
+});
+
+// Manual load batches button
+loadBatchesBtn.addEventListener('click', function() {
+    const loc = locationSelect.value;
+    const prod = productSelect.value;
+    if (!loc || !prod) {
+        alert('Please select a location and product first.');
+        return;
+    }
+    window.location.href = `/dispensing/new?location_id=${loc}&product_id=${prod}`;
+});
+
+// Sync on submit
+document.getElementById('dispensing-form').addEventListener('submit', function() {
+    syncDispensedBy();
+});
+</script>
+{% endblock %}
