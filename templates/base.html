@@ -54,6 +54,61 @@
             </div>
             
             <div class="flex items-center gap-4">
+                <!-- Notification Bell -->
+                <div class="relative" id="notification-dropdown-container">
+                    <button id="notification-bell-btn" type="button" class="relative p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded transition-colors focus:outline-none" title="Notifications">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                        </svg>
+                        <span id="notification-badge" class="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-red-600 text-white font-mono text-[10px] font-extrabold rounded-full flex items-center justify-center border border-slate-900 shadow-md ring-2 ring-red-500/40 {% if unread_notification_count %}animate-pulse{% else %}hidden{% endif %}">
+                            {{ unread_notification_count or 0 }}
+                        </span>
+                    </button>
+
+                    <!-- Dropdown Menu -->
+                    <div id="notification-menu" class="hidden absolute right-0 mt-2 w-80 bg-slate-900 border border-slate-700 shadow-2xl rounded-lg overflow-hidden z-50">
+                        <div class="px-4 py-2.5 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
+                            <span class="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-red-500 inline-block animate-ping"></span>
+                                Notifications
+                            </span>
+                            <form action="/notifications/read-all" method="post" class="inline">
+                                <button type="submit" class="text-[11px] text-amber-400 hover:text-amber-300 font-mono hover:underline">Mark all read</button>
+                            </form>
+                        </div>
+                        <div id="notification-list" class="max-h-72 overflow-y-auto divide-y divide-slate-800/60">
+                            {% if notifications %}
+                                {% for n in notifications %}
+                                <a href="{% if n.link %}/notifications/{{ n.id }}/read{% else %}#{% endif %}" class="block px-4 py-3 hover:bg-slate-800/90 transition-colors {% if not n.is_read %}bg-red-950/40 border-l-4 border-red-500 shadow-inner{% else %}opacity-75{% endif %}">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="flex-1">
+                                            <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                                                {% if not n.is_read %}
+                                                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                                                {% elif n.icon_type == 'check' %}
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                {% elif n.icon_type == 'x' %}
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                                                {% else %}
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                                                {% endif %}
+                                                <span class="{% if not n.is_read %}text-red-200{% else %}text-slate-200{% endif %}">{{ n.title }}</span>
+                                            </div>
+                                            <p class="text-[11px] text-slate-300 mt-1 leading-snug">{{ n.message }}</p>
+                                            <span class="text-[10px] text-slate-500 font-mono mt-1 block">{{ n.created_at.strftime('%m/%d %H:%M') if n.created_at else '' }}</span>
+                                        </div>
+                                    </div>
+                                </a>
+                                {% endfor %}
+                            {% else %}
+                                <div class="px-4 py-6 text-center text-xs text-slate-400 font-mono">
+                                    No notifications yet
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
                 {% if acting_user %}
                 <div class="flex items-center gap-3 bg-slate-800/90 border border-slate-700 px-3 py-1.5 rounded text-xs">
                     <div class="w-7 h-7 rounded-full bg-amber-600 text-white font-bold flex items-center justify-center text-xs shadow-inner">
@@ -202,6 +257,114 @@
             params.set('location_id', locationSelect.value);
             window.location.href = `${window.location.pathname}?${params.toString()}`;
         });
+    }
+
+    // Notification Sound & Polling System
+    const bellBtn = document.getElementById('notification-bell-btn');
+    const menu = document.getElementById('notification-menu');
+    const container = document.getElementById('notification-dropdown-container');
+    const badge = document.getElementById('notification-badge');
+    const listContainer = document.getElementById('notification-list');
+    let previousUnreadCount = parseInt(badge ? (badge.textContent || '0') : '0', 10);
+
+    function playNotificationSound() {
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) return;
+            const ctx = new AudioContextClass();
+            const now = ctx.currentTime;
+            
+            // First note (E5 = ~659Hz)
+            const osc1 = ctx.createOscillator();
+            const gain1 = ctx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(659.25, now);
+            gain1.gain.setValueAtTime(0.15, now);
+            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            osc1.connect(gain1);
+            gain1.connect(ctx.destination);
+            osc1.start(now);
+            osc1.stop(now + 0.25);
+
+            // Second higher chime note (A5 = ~880Hz)
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(880, now + 0.12);
+            gain2.gain.setValueAtTime(0.2, now + 0.12);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.start(now + 0.12);
+            osc2.stop(now + 0.45);
+        } catch (e) {
+            console.log('Audio playback context requires user gesture or is unsupported:', e);
+        }
+    }
+
+    if (bellBtn && menu) {
+        bellBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            menu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (container && !container.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        // Dynamic Polling every 10s
+        async function fetchNotifications() {
+            try {
+                const res = await fetch('/notifications/api', {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+
+                if (data.unread_count > previousUnreadCount) {
+                    playNotificationSound();
+                }
+                previousUnreadCount = data.unread_count;
+
+                if (badge) {
+                    if (data.unread_count > 0) {
+                        badge.textContent = data.unread_count;
+                        badge.classList.remove('hidden');
+                        badge.classList.add('animate-pulse');
+                    } else {
+                        badge.classList.add('hidden');
+                        badge.classList.remove('animate-pulse');
+                    }
+                }
+
+                if (listContainer && data.notifications) {
+                    if (data.notifications.length === 0) {
+                        listContainer.innerHTML = `<div class="px-4 py-6 text-center text-xs text-slate-400 font-mono">No notifications yet</div>`;
+                    } else {
+                        listContainer.innerHTML = data.notifications.map(n => `
+                            <a href="${n.link ? `/notifications/${n.id}/read` : '#'}" class="block px-4 py-3 hover:bg-slate-800/90 transition-colors ${!n.is_read ? 'bg-red-950/40 border-l-4 border-red-500 shadow-inner' : 'opacity-75'}">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="flex-1">
+                                        <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                                            ${!n.is_read ? '<span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>' : n.icon_type === 'check' ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>' : n.icon_type === 'x' ? '<span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>' : '<span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>'}
+                                            <span class="${!n.is_read ? 'text-red-200' : 'text-slate-200'}">${n.title}</span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-300 mt-1 leading-snug">${n.message}</p>
+                                        <span class="text-[10px] text-slate-500 font-mono mt-1 block">${n.created_at || ''}</span>
+                                    </div>
+                                </div>
+                            </a>
+                        `).join('');
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch notifications:', err);
+            }
+        }
+
+        setInterval(fetchNotifications, 10000);
     }
     </script>
 </body>

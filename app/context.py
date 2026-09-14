@@ -1,9 +1,59 @@
 from urllib.parse import quote_plus
 from fastapi import Request
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth import get_user_from_session
-from app.models import AppUser, Company, Location, UserRole
+from app.models import AppUser, Company, Location, Notification, UserRole
+
+
+def create_notification(
+    db: Session,
+    title: str,
+    message: str,
+    link: str | None = None,
+    user_id: int | None = None,
+    target_role: UserRole | None = None,
+    target_location_id: int | None = None,
+    company_id: int | None = None,
+    icon_type: str = "bell",
+):
+    notification = Notification(
+        company_id=company_id,
+        user_id=user_id,
+        target_role=target_role,
+        target_location_id=target_location_id,
+        title=title,
+        message=message,
+        link=link,
+        icon_type=icon_type,
+        is_read=False,
+    )
+    db.add(notification)
+    db.commit()
+    return notification
+
+
+def get_user_notifications(db: Session, acting_user: AppUser | None, limit: int = 10):
+    if not acting_user:
+        return []
+
+    conditions = [Notification.user_id == acting_user.id]
+
+    if acting_user.role:
+        conditions.append(Notification.target_role == acting_user.role)
+
+    if acting_user.home_location_id:
+        conditions.append(Notification.target_location_id == acting_user.home_location_id)
+
+    query = db.query(Notification).filter(or_(*conditions))
+
+    if acting_user.company_id:
+        query = query.filter(
+            or_(Notification.company_id == acting_user.company_id, Notification.company_id.is_(None))
+        )
+
+    return query.order_by(Notification.created_at.desc()).limit(limit).all()
 
 
 def get_acting_user(
@@ -75,6 +125,9 @@ def header_context(
         locations_query = locations_query.filter(Location.company_id == acting_user.company_id)
         users_query = users_query.filter(AppUser.company_id == acting_user.company_id)
 
+    notifications = get_user_notifications(db, acting_user, limit=15)
+    unread_count = sum(1 for n in notifications if not n.is_read)
+
     return {
         "locations": locations_query.order_by(Location.id).all(),
         "app_users": users_query.order_by(AppUser.id).all(),
@@ -87,9 +140,12 @@ def header_context(
         ],
         "acting_user": acting_user,
         "company": company,
+        "notifications": notifications,
+        "unread_notification_count": unread_count,
     }
 
 
 def success_redirect(path: str, message: str):
     separator = "&" if "?" in path else "?"
     return f"{path}{separator}success={quote_plus(message)}"
+

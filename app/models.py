@@ -1,7 +1,7 @@
 import enum
 import datetime
 
-from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -304,3 +304,24 @@ class StockLedgerEntry(Base):
     location = relationship("Location")
     product = relationship("Product")
     performed_by = relationship("AppUser")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("app_users.id"), nullable=True)
+    target_role = Column(Enum(UserRole), nullable=True)
+    target_location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)
+    title = Column(String, nullable=False)
+    message = Column(String, nullable=False)
+    link = Column(String, nullable=True)
+    icon_type = Column(String, nullable=True, default="bell")
+    is_read = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    company = relationship("Company")
+    user = relationship("AppUser", foreign_keys=[user_id])
+    target_location = relationship("Location", foreign_keys=[target_location_id])
+

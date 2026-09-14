@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.context import (
+    create_notification,
     get_acting_user,
     header_context,
     scoped_location_ids,
@@ -96,9 +97,11 @@ def create_requisition(
 
     if quantity < 1:
         raise HTTPException(status_code=422, detail="Quantity must be at least one")
-    if db.get(Product, product_id) is None:
+    product = db.get(Product, product_id)
+    if product is None:
         raise HTTPException(status_code=422, detail="Product not found")
-    if db.get(Location, location_id) is None:
+    location = db.get(Location, location_id)
+    if location is None:
         raise HTTPException(status_code=422, detail="Location not found")
     if requester_id is None or db.get(AppUser, requester_id) is None:
         raise HTTPException(status_code=422, detail="Requester not found")
@@ -115,6 +118,18 @@ def create_requisition(
     )
     db.add(requisition)
     db.commit()
+
+    # Create notification for Central Purchasing and Admins
+    create_notification(
+        db=db,
+        title=f"New Requisition {requisition.document_no}",
+        message=f"{location.name} requested {quantity}x {product.name}",
+        link=f"/requisitions/{requisition.id}",
+        target_role=UserRole.CENTRAL_PURCHASING,
+        company_id=acting_user.company_id if acting_user else None,
+        icon_type="requisition",
+    )
+
     return RedirectResponse(
         url=success_redirect("/requisitions", f"{requisition.document_no} created"),
         status_code=303,
@@ -137,6 +152,18 @@ def approve_requisition(
     if requisition.status == RequisitionStatus.SUBMITTED:
         requisition.status = RequisitionStatus.APPROVED
         db.commit()
+
+        # Notify requester
+        create_notification(
+            db=db,
+            title=f"Requisition Approved ({requisition.document_no})",
+            message=f"Your requisition for {requisition.product.name} ({requisition.quantity} units) was approved.",
+            link=f"/requisitions/{requisition.id}",
+            user_id=requisition.requester_id,
+            company_id=requisition.location.company_id if requisition.location else None,
+            icon_type="check",
+        )
+
     return RedirectResponse(
         url=success_redirect("/requisitions", f"{requisition.document_no} approved"),
         status_code=303,
@@ -159,10 +186,23 @@ def reject_requisition(
     if requisition.status == RequisitionStatus.SUBMITTED:
         requisition.status = RequisitionStatus.REJECTED
         db.commit()
+
+        # Notify requester
+        create_notification(
+            db=db,
+            title=f"Requisition Rejected ({requisition.document_no})",
+            message=f"Your requisition for {requisition.product.name} was rejected.",
+            link=f"/requisitions/{requisition.id}",
+            user_id=requisition.requester_id,
+            company_id=requisition.location.company_id if requisition.location else None,
+            icon_type="x",
+        )
+
     return RedirectResponse(
         url=success_redirect("/requisitions", f"{requisition.document_no} rejected"),
         status_code=303,
     )
+
 
 
 @router.get("/{requisition_id}", response_class=HTMLResponse)
