@@ -51,11 +51,11 @@ def run_full_scenario(db: Session) -> int:
     
     Returns the requisition_id for redirection to /traceability/{requisition_id}.
     """
-    # Look up master data dynamically by name
+    # Look up master data dynamically by flexible name filters
     branch_a = db.query(Location).filter(Location.name == "Branch A").first()
-    central_wh = db.query(Location).filter(Location.name == "Central Warehouse").first()
-    product = db.query(Product).filter(Product.name == "Insulin Glargine").first()
-    supplier = db.query(Supplier).filter(Supplier.name == "MedSupply Co").first()
+    central_wh = db.query(Location).filter(Location.name.like("%Central%")).first()
+    product = db.query(Product).filter(Product.name.like("%Insulin%")).first()
+    supplier = db.query(Supplier).filter(Supplier.name.like("%Med%")).first()
 
     anita = db.query(AppUser).filter(AppUser.name == "Anita Rao").first()
     meena = db.query(AppUser).filter(AppUser.name == "Meena Pillai").first()
