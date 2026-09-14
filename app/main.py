@@ -36,6 +36,7 @@ from app.routers.dispensing import router as dispensing_router
 from app.routers.traceability import router as traceability_router
 from app.routers.demo import router as demo_router
 from app.routers.notifications import router as notifications_router
+from app.routers.qr import router as qr_router
 from app.seed import seed_if_empty
 
 app = FastAPI()
@@ -66,6 +67,8 @@ app.include_router(dispensing_router)
 app.include_router(traceability_router)
 app.include_router(demo_router)
 app.include_router(notifications_router)
+app.include_router(qr_router)
+
 
 
 

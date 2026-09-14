@@ -3,7 +3,10 @@ uvicorn[standard]
 sqlalchemy
 jinja2
 python-multipart
+python-dotenv
 fpdf2
 Pillow
 psycopg2-binary
 passlib
+qrcode[pil]
+

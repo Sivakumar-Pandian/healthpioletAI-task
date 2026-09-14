@@ -7,10 +7,20 @@
     <span>{{ requisition.document_no }}</span>
 </nav>
 
-<div class="flex items-center justify-between mb-4">
-    <h1 class="font-serif text-2xl">Document Chain — <span class="font-mono text-xl">{{ requisition.document_no }}</span></h1>
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+    <div class="flex items-center gap-4">
+        <h1 class="font-serif text-2xl">Document Chain — <span class="font-mono text-xl">{{ requisition.document_no }}</span></h1>
+        <div class="bg-white p-2 border border-slate-300 rounded shadow-sm flex items-center gap-2.5">
+            <img src="/qr/render?data={{ requisition.document_no }}" alt="QR Code" class="w-12 h-12 border rounded">
+            <div>
+                <div class="text-[11px] font-mono font-bold text-slate-900">Trace Chain QR</div>
+                <div class="text-[9px] text-slate-500 font-mono">{{ requisition.document_no }}</div>
+            </div>
+        </div>
+    </div>
     <a href="/traceability" class="text-ink underline text-sm">← Back to Traceability</a>
 </div>
+
 
 <div class="mb-2 text-xs text-gray-500 uppercase tracking-widest">Full document trail</div>
 

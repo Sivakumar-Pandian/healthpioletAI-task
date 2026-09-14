@@ -6,10 +6,22 @@
     <span class="mx-2">/</span>
     <span>{{ requisition.document_no }}</span>
 </nav>
-<div class="flex items-center justify-between mb-6">
-    <h1 class="font-serif text-2xl">Requisition <span class="font-mono text-xl">{{ requisition.document_no }}</span></h1>
-    <a href="/requisitions" class="text-ink underline text-sm">Back to Requisitions</a>
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+    <div>
+        <h1 class="font-serif text-2xl">Requisition <span class="font-mono text-xl">{{ requisition.document_no }}</span></h1>
+    </div>
+    <div class="flex items-center gap-4">
+        <div class="bg-white p-2.5 border border-slate-300 rounded shadow-sm flex items-center gap-3">
+            <img src="/qr/render?data={{ requisition.document_no }}" alt="QR Code" class="w-14 h-14 border rounded">
+            <div>
+                <div class="text-xs font-mono font-bold text-slate-900">Document QR</div>
+                <div class="text-[10px] text-slate-500 font-mono">{{ requisition.document_no }}</div>
+            </div>
+        </div>
+        <a href="/requisitions" class="text-ink underline text-sm">Back to Requisitions</a>
+    </div>
 </div>
+
 
 <dl class="grid grid-cols-1 md:grid-cols-2 max-w-3xl border-t border-ink text-sm">
     {% if not (acting_user and acting_user.role.value == 'BRANCH_STAFF') %}

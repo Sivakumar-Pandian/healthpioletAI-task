@@ -1,5 +1,7 @@
+import io
 from fpdf import FPDF
 from app.models import GoodsReceiptNote, GrnCorrection, PurchaseOrder, SalesInvoice, StockTransfer, SupplierInvoice
+from app.qr import generate_qr_bytes
 
 
 class CleanPDF(FPDF):
@@ -22,6 +24,13 @@ def _create_base_pdf(doc_type_title: str, doc_no: str) -> CleanPDF:
     pdf = CleanPDF()
     pdf.add_page()
 
+    # Draw QR code in top right header
+    try:
+        qr_png = generate_qr_bytes(doc_no, box_size=6, border=1)
+        pdf.image(io.BytesIO(qr_png), x=168, y=5, w=25)
+    except Exception as e:
+        print("Failed to embed QR code in PDF:", e)
+
     pdf.set_font("Helvetica", "B", 14)
     pdf.set_text_color(166, 100, 42)  # amber accent
     pdf.cell(0, 8, doc_type_title, ln=True)
@@ -31,6 +40,7 @@ def _create_base_pdf(doc_type_title: str, doc_no: str) -> CleanPDF:
     pdf.cell(0, 6, f"Document No: {doc_no}", ln=True)
     pdf.ln(4)
     return pdf
+
 
 
 def _render_table(pdf: CleanPDF, pairs: list[tuple[str, str]]):
@@ -49,6 +59,7 @@ def _render_table(pdf: CleanPDF, pairs: list[tuple[str, str]]):
 
 def purchase_order_pdf(po: PurchaseOrder) -> bytes:
     pdf = _create_base_pdf("PURCHASE ORDER", po.document_no)
+    status_str = po.status.value if hasattr(po.status, "value") else str(po.status)
     pairs = [
         ("Supplier", po.supplier.name),
         ("Product", po.product.name),
@@ -59,7 +70,7 @@ def purchase_order_pdf(po: PurchaseOrder) -> bytes:
         ("Value Before Tax", f"INR {po.value_before_tax:,.2f}"),
         ("Tax Amount", f"INR {po.tax_amount:,.2f}"),
         ("Total Value", f"INR {po.total_value:,.2f}"),
-        ("Status", po.status.value),
+        ("Status", status_str),
     ]
     _render_table(pdf, pairs)
     return bytes(pdf.output())
@@ -67,6 +78,7 @@ def purchase_order_pdf(po: PurchaseOrder) -> bytes:
 
 def grn_pdf(grn: GoodsReceiptNote, correction: GrnCorrection | None = None) -> bytes:
     pdf = _create_base_pdf("GOODS RECEIPT NOTE", grn.document_no)
+    posted_at_str = grn.posted_at.strftime("%Y-%m-%d %H:%M") if grn.posted_at else "-"
     pairs = [
         ("Purchase Order", grn.purchase_order.document_no),
         ("Supplier", grn.purchase_order.supplier.name),
@@ -79,7 +91,7 @@ def grn_pdf(grn: GoodsReceiptNote, correction: GrnCorrection | None = None) -> b
         ("Damaged Quantity", str(grn.damaged_quantity)),
         ("Missing Quantity", str(grn.missing_quantity)),
         ("Posted By", grn.posted_by.name),
-        ("Posted At", grn.posted_at.strftime("%Y-%m-%d %H:%M")),
+        ("Posted At", posted_at_str),
     ]
     _render_table(pdf, pairs)
 
@@ -102,6 +114,7 @@ def grn_pdf(grn: GoodsReceiptNote, correction: GrnCorrection | None = None) -> b
 
 def supplier_invoice_pdf(invoice: SupplierInvoice) -> bytes:
     pdf = _create_base_pdf("SUPPLIER INVOICE", invoice.document_no)
+    status_str = invoice.status.value if hasattr(invoice.status, "value") else str(invoice.status)
     pairs = [
         ("Purchase Order", invoice.purchase_order.document_no),
         ("Goods Receipt Note", invoice.goods_receipt_note.document_no),
@@ -109,8 +122,8 @@ def supplier_invoice_pdf(invoice: SupplierInvoice) -> bytes:
         ("Invoiced Value", f"INR {invoice.invoiced_value:,.2f}"),
         ("Payable Amount", f"INR {invoice.payable_amount:,.2f}"),
         ("Disputed Amount", f"INR {invoice.disputed_amount:,.2f}"),
-        ("Status", invoice.status.value),
-        ("Credit Note Ref", invoice.credit_note_reference or "—"),
+        ("Status", status_str),
+        ("Credit Note Ref", invoice.credit_note_reference or "-"),
     ]
     _render_table(pdf, pairs)
     return bytes(pdf.output())
@@ -118,13 +131,14 @@ def supplier_invoice_pdf(invoice: SupplierInvoice) -> bytes:
 
 def sales_invoice_pdf(sale: SalesInvoice) -> bytes:
     pdf = _create_base_pdf("SALES INVOICE / DISPENSING RECEIPT", sale.document_no)
+    dispensed_at_str = sale.dispensed_at.strftime("%Y-%m-%d %H:%M") if sale.dispensed_at else "-"
     pairs = [
         ("Location", sale.location.name),
         ("Product", sale.product.name),
         ("Batch Number", sale.batch_number),
         ("Quantity", str(sale.quantity)),
         ("Payment Mode", sale.payment_mode),
-        ("Prescription Ref", sale.prescription_reference or "—"),
+        ("Prescription Ref", sale.prescription_reference or "-"),
         ("Unit Price", f"INR {sale.unit_price:,.2f}"),
         ("Tax Percent", f"{sale.tax_percent}%"),
         ("Value Before Tax", f"INR {sale.value_before_tax:,.2f}"),
@@ -132,7 +146,7 @@ def sales_invoice_pdf(sale: SalesInvoice) -> bytes:
         ("Total Amount", f"INR {sale.total_amount:,.2f}"),
         ("Cost Basis (Internal)", f"INR {sale.cost_of_goods:,.2f}"),
         ("Dispensed By", sale.dispensed_by.name),
-        ("Dispensed At", sale.dispensed_at.strftime("%Y-%m-%d %H:%M")),
+        ("Dispensed At", dispensed_at_str),
     ]
     _render_table(pdf, pairs)
     return bytes(pdf.output())
@@ -140,17 +154,21 @@ def sales_invoice_pdf(sale: SalesInvoice) -> bytes:
 
 def stock_transfer_pdf(transfer: StockTransfer) -> bytes:
     pdf = _create_base_pdf("STOCK TRANSFER RECEIPT / NOTE", transfer.document_no)
+    status_str = transfer.status.value if hasattr(transfer.status, "value") else str(transfer.status)
+    dispatched_at_str = transfer.dispatched_at.strftime("%Y-%m-%d %H:%M") if transfer.dispatched_at else "-"
     pairs = [
         ("Source Location", transfer.source_location.name),
         ("Destination Location", transfer.destination_location.name),
         ("Product", transfer.product.name),
         ("Batch Number", transfer.batch_number),
         ("Quantity", str(transfer.quantity)),
-        ("Status", transfer.status.value),
+        ("Status", status_str),
         ("Dispatched By", transfer.dispatched_by.name),
-        ("Dispatched At", transfer.dispatched_at.strftime("%Y-%m-%d %H:%M")),
-        ("Received By", transfer.received_by.name if transfer.received_by else "—"),
-        ("Received At", transfer.received_at.strftime("%Y-%m-%d %H:%M") if transfer.received_at else "—"),
+        ("Dispatched At", dispatched_at_str),
+        ("Received By", transfer.received_by.name if transfer.received_by else "-"),
+        ("Received At", transfer.received_at.strftime("%Y-%m-%d %H:%M") if transfer.received_at else "-"),
     ]
     _render_table(pdf, pairs)
     return bytes(pdf.output())
+
+

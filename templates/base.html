@@ -10,6 +10,8 @@
     
     <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- HTML5-QRCode Library for WebCam & File QR Scanning -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
     tailwind.config = {
         theme: {
@@ -54,6 +56,12 @@
             </div>
             
             <div class="flex items-center gap-4">
+                <!-- QR Code Scanner Header Button -->
+                <button id="open-qr-modal-btn" type="button" class="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/10 border border-amber-500/40 text-amber-400 hover:bg-amber-500/20 text-xs font-mono font-semibold rounded transition-colors shadow-sm" title="Scan QR Code or Barcode">
+                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                    <span>Scan QR</span>
+                </button>
+
                 <!-- Notification Bell -->
                 <div class="relative" id="notification-dropdown-container">
                     <button id="notification-bell-btn" type="button" class="relative p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded transition-colors focus:outline-none" title="Notifications">
@@ -243,6 +251,44 @@
             </main>
         </div>
     </div>
+    <!-- Interactive QR Code Scanner Modal -->
+    <div id="qr-scanner-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-700 text-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
+            <!-- Modal Header -->
+            <div class="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
+                <div class="flex items-center gap-2 text-amber-400 font-serif font-bold text-base">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                    <span>ERP QR Code Scanner</span>
+                </div>
+                <button id="close-qr-modal-btn" type="button" class="text-slate-400 hover:text-white text-xl leading-none font-bold">&times;</button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-5 space-y-4">
+                <!-- Camera Viewport -->
+                <div id="qr-reader" class="w-full bg-slate-950 rounded-lg border border-slate-800 overflow-hidden min-h-[220px]"></div>
+
+                <!-- Tabs: Upload File / Manual Input -->
+                <div class="space-y-3 pt-2 border-t border-slate-800">
+                    <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
+                        <span>Upload image or enter code:</span>
+                    </div>
+
+                    <!-- File Upload -->
+                    <div>
+                        <input type="file" id="qr-file-input" accept="image/*" class="block w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-500 cursor-pointer bg-slate-950 rounded border border-slate-800">
+                    </div>
+
+                    <!-- Manual Search Form -->
+                    <form action="/qr/scan" method="get" class="flex gap-2">
+                        <input type="text" name="code" placeholder="Scan or enter code (e.g. GRN-0001)..." class="flex-1 bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-mono">
+                        <button type="submit" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-mono text-xs font-semibold rounded transition-colors">Go</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
     const locationSelect = document.getElementById('location-select');
     if (locationSelect && !locationSelect.disabled) {
@@ -257,6 +303,80 @@
             params.set('location_id', locationSelect.value);
             window.location.href = `${window.location.pathname}?${params.toString()}`;
         });
+    }
+
+    // QR Code Scanner Modal Logic
+    const openQrBtn = document.getElementById('open-qr-modal-btn');
+    const closeQrBtn = document.getElementById('close-qr-modal-btn');
+    const qrModal = document.getElementById('qr-scanner-modal');
+    const qrFileInput = document.getElementById('qr-file-input');
+    let html5QrCode = null;
+
+    if (openQrBtn && qrModal) {
+        openQrBtn.addEventListener('click', () => {
+            qrModal.classList.remove('hidden');
+            startCameraScanner();
+        });
+
+        if (closeQrBtn) {
+            closeQrBtn.addEventListener('click', () => {
+                stopCameraScanner();
+                qrModal.classList.add('hidden');
+            });
+        }
+
+        qrModal.addEventListener('click', (e) => {
+            if (e.target === qrModal) {
+                stopCameraScanner();
+                qrModal.classList.add('hidden');
+            }
+        });
+
+        function onScanSuccess(decodedText) {
+            stopCameraScanner();
+            window.location.href = `/qr/scan?code=${encodeURIComponent(decodedText)}`;
+        }
+
+        function startCameraScanner() {
+            if (typeof Html5Qrcode === 'undefined') return;
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("qr-reader");
+            }
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 200, height: 200 } },
+                onScanSuccess,
+                () => {}
+            ).catch(err => {
+                console.log("Camera access not available or denied:", err);
+                const readerElem = document.getElementById('qr-reader');
+                if (readerElem) {
+                    readerElem.innerHTML = `
+                        <div class="p-6 text-center text-xs text-slate-400 font-mono">
+                            <p class="text-amber-400 font-semibold mb-1">Camera Scanner Ready</p>
+                            <p>Use file upload or manual search below to scan QR codes.</p>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        function stopCameraScanner() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => html5QrCode.clear()).catch(e => console.log(e));
+            }
+        }
+
+        if (qrFileInput) {
+            qrFileInput.addEventListener('change', e => {
+                if (e.target.files.length === 0) return;
+                const imageFile = e.target.files[0];
+                const qrScanner = new Html5Qrcode("qr-reader");
+                qrScanner.scanFile(imageFile, true)
+                    .then(decodedText => onScanSuccess(decodedText))
+                    .catch(err => alert("Could not find a valid QR Code in the uploaded image."));
+            });
+        }
     }
 
     // Notification Sound & Polling System
