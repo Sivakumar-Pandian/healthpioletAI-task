@@ -72,6 +72,27 @@ app.include_router(qr_router)
 
 
 
+from app.context import header_context, get_acting_user, scoped_location_ids, success_redirect
+
+PUBLIC_PATHS = {"/login", "/signup", "/logout", "/favicon.ico", "/qr/render"}
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    path = request.url.path
+    if path in PUBLIC_PATHS or path.startswith("/static"):
+        return await call_next(request)
+
+    db = SessionLocal()
+    try:
+        user = get_acting_user(db, request)
+        if user is None:
+            return RedirectResponse(url="/login?error=Please+sign+in+to+continue", status_code=303)
+    finally:
+        db.close()
+
+    return await call_next(request)
+
+
 @app.get("/", response_class=HTMLResponse)
 def read_root(
     request: Request,
@@ -82,7 +103,8 @@ def read_root(
     context = header_context(db, request, acting_as_id=acting_as_id)
     active_user = context["acting_user"]
     if active_user is None:
-        raise HTTPException(status_code=500, detail="No application users configured")
+        return RedirectResponse(url="/login", status_code=303)
+
 
     loc_ids = scoped_location_ids(db, active_user)
 

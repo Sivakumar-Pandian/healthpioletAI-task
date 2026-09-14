@@ -78,8 +78,9 @@ def get_acting_user(
         if user is not None:
             return user
 
-    # Default fallback to first AppUser
-    return db.query(AppUser).order_by(AppUser.id).first()
+    # If no active session or query param is provided, user is unauthenticated
+    return None
+
 
 
 def scoped_location_ids(
