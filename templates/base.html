@@ -60,14 +60,7 @@
                 {% endif %}
             </div>
             
-            <div class="flex items-center gap-2 sm:gap-4">
-                <!-- QR Code Scanner Header Button -->
-                <button id="open-qr-modal-btn" type="button" class="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 bg-amber-500/10 border border-amber-500/40 text-amber-400 hover:bg-amber-500/20 text-xs font-mono font-semibold rounded transition-colors shadow-sm" title="Scan QR Code or Barcode">
-                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                    <span class="hidden xs:inline sm:inline">Scan QR</span>
-                </button>
 
-                <!-- Notification Bell -->
                 <div class="relative" id="notification-dropdown-container">
                     <button id="notification-bell-btn" type="button" class="relative p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded transition-colors focus:outline-none" title="Notifications">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -341,16 +334,21 @@
     }
 
     // QR Code Scanner Modal Logic
-    const openQrBtn = document.getElementById('open-qr-modal-btn');
     const closeQrBtn = document.getElementById('close-qr-modal-btn');
     const qrModal = document.getElementById('qr-scanner-modal');
     const qrFileInput = document.getElementById('qr-file-input');
     let html5QrCode = null;
+    let activeScanTargetInput = null;
 
-    if (openQrBtn && qrModal) {
-        openQrBtn.addEventListener('click', () => {
-            qrModal.classList.remove('hidden');
-            startCameraScanner();
+    if (qrModal) {
+        document.addEventListener('click', (e) => {
+            const scanBtn = e.target.closest('.open-qr-scanner-btn, #open-qr-modal-btn');
+            if (scanBtn) {
+                e.preventDefault();
+                activeScanTargetInput = scanBtn.getAttribute('data-target-input') || null;
+                qrModal.classList.remove('hidden');
+                startCameraScanner();
+            }
         });
 
         if (closeQrBtn) {
@@ -369,7 +367,15 @@
 
         function onScanSuccess(decodedText) {
             stopCameraScanner();
-            window.location.href = `/qr/scan?code=${encodeURIComponent(decodedText)}`;
+            if (activeScanTargetInput && document.getElementById(activeScanTargetInput)) {
+                const targetEl = document.getElementById(activeScanTargetInput);
+                targetEl.value = decodedText;
+                qrModal.classList.add('hidden');
+                targetEl.dispatchEvent(new Event('input', { bubbles: true }));
+                targetEl.dispatchEvent(new Event('change', { bubbles: true }));
+            } else {
+                window.location.href = `/qr/scan?code=${encodeURIComponent(decodedText)}`;
+            }
         }
 
         function startCameraScanner() {
