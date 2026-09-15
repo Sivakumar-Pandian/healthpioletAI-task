@@ -213,17 +213,25 @@
                         </ul>
                     </div>
 
-                    <!-- ═══ Inventory & Operations — hidden from BRANCH_STAFF ═══ -->
-                    {% if role in ['RECEIVING_STAFF', 'CENTRAL_PURCHASING', 'COMPANY_ADMIN'] %}
+                    <!-- ═══ Inventory & Operations ═══ -->
+                    {% if role in ['BRANCH_STAFF', 'RECEIVING_STAFF', 'CENTRAL_PURCHASING', 'COMPANY_ADMIN'] %}
                     <div>
                         <div class="px-3 mb-2 text-[10px] font-mono font-bold tracking-wider text-slate-500 uppercase">Inventory &amp; Operations</div>
                         <ul class="space-y-1 text-sm font-medium">
 
-                            <!-- Stock Ledger — RECEIVING_STAFF, CENTRAL_PURCHASING, COMPANY_ADMIN -->
+                            <!-- Stock Ledger — all roles -->
                             <li>
                                 <a href="/stock-ledger" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/stock-ledger') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                                     <span>Stock Ledger</span>
+                                </a>
+                            </li>
+
+                            <!-- Transfers — all roles -->
+                            <li>
+                                <a href="/transfers" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/transfers') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                    <span>Transfers</span>
                                 </a>
                             </li>
 
@@ -237,16 +245,8 @@
                             </li>
                             {% endif %}
 
-                            <!-- Transfers — RECEIVING_STAFF, CENTRAL_PURCHASING, COMPANY_ADMIN -->
-                            <li>
-                                <a href="/transfers" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/transfers') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
-                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                                    <span>Transfers</span>
-                                </a>
-                            </li>
-
-                            <!-- Dispensing — COMPANY_ADMIN only in this section -->
-                            {% if role == 'COMPANY_ADMIN' %}
+                            <!-- Dispensing — BRANCH_STAFF, COMPANY_ADMIN -->
+                            {% if role in ['BRANCH_STAFF', 'COMPANY_ADMIN'] %}
                             <li>
                                 <a href="/dispensing" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/dispensing') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L5.6 15.12a2 2 0 00-1.096.185l-1.39.7a2 2 0 00-.914 2.274l.64 2.133a2 2 0 001.9 1.432h14.54a2 2 0 001.9-1.432l.64-2.133a2 2 0 00-.914-2.274l-1.392-.7z"></path></svg>
@@ -255,7 +255,7 @@
                             </li>
                             {% endif %}
 
-                            <!-- Traceability — all in this section -->
+                            <!-- Traceability — all roles -->
                             <li>
                                 <a href="/traceability" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/traceability') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
@@ -267,26 +267,7 @@
                     </div>
                     {% endif %}
 
-                    <!-- ═══ Pharmacy — BRANCH_STAFF only ═══ -->
-                    {% if role == 'BRANCH_STAFF' %}
-                    <div>
-                        <div class="px-3 mb-2 text-[10px] font-mono font-bold tracking-wider text-slate-500 uppercase">Pharmacy</div>
-                        <ul class="space-y-1 text-sm font-medium">
-                            <li>
-                                <a href="/dispensing" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/dispensing') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
-                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L5.6 15.12a2 2 0 00-1.096.185l-1.39.7a2 2 0 00-.914 2.274l.64 2.133a2 2 0 001.9 1.432h14.54a2 2 0 001.9-1.432l.64-2.133a2 2 0 00-.914-2.274l-1.392-.7z"></path></svg>
-                                    <span>Dispensing</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/traceability" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/traceability') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
-                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                    <span>Traceability</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    {% endif %}
+
 
                     <!-- ═══ QR Scan shortcut — all authenticated users ═══ -->
                     {% if acting_user %}
