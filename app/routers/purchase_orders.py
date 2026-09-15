@@ -117,7 +117,8 @@ def create_purchase_order(
         raise HTTPException(status_code=422, detail="Price and tax percent must be non-negative")
     if db.get(Supplier, supplier_id) is None:
         raise HTTPException(status_code=422, detail="Supplier not found")
-    if db.get(Location, delivery_location_id) is None:
+    delivery_loc = db.get(Location, delivery_location_id)
+    if delivery_loc is None:
         raise HTTPException(status_code=422, detail="Delivery location not found")
 
     value_before_tax = requisition.quantity * unit_price
@@ -137,12 +138,13 @@ def create_purchase_order(
         status=PurchaseOrderStatus.OPEN,
     )
     db.add(purchase_order)
+    db.flush()
 
     # Notify Receiving Staff / Delivery Location
     create_notification(
         db=db,
         title=f"New Purchase Order {purchase_order.document_no}",
-        message=f"PO issued for {purchase_order.quantity}x {requisition.product.name} to deliver to {purchase_order.delivery_location.name}",
+        message=f"PO issued for {purchase_order.quantity}x {requisition.product.name} to deliver to {delivery_loc.name}",
         link=f"/purchase-orders/{purchase_order.id}",
         target_location_id=delivery_location_id,
         company_id=acting_user.company_id if acting_user else None,
