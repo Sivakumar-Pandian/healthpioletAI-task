@@ -353,10 +353,11 @@ from app.traceability import build_chain
 
 
 from app.pdf_export import stock_transfer_pdf
+from app.image_export import pdf_bytes_to_png
 
 
-@router.get("/{transfer_id}/pdf")
-def download_stock_transfer_pdf(
+@router.get("/{transfer_id}/image")
+def download_stock_transfer_image(
     transfer_id: int,
     request: Request,
     db: Session = Depends(get_db),
@@ -374,10 +375,25 @@ def download_stock_transfer_pdf(
             )
 
     pdf_bytes = stock_transfer_pdf(transfer)
+    status_str = transfer.status.value if hasattr(transfer.status, "value") else str(transfer.status)
+    dispatched_at_str = transfer.dispatched_at.strftime("%Y-%m-%d %H:%M") if transfer.dispatched_at else "-"
+    rows = [
+        ("Source Location", transfer.source_location.name),
+        ("Destination Location", transfer.destination_location.name),
+        ("Product", transfer.product.name),
+        ("Batch Number", transfer.batch_number),
+        ("Quantity", str(transfer.quantity)),
+        ("Status", status_str),
+        ("Dispatched By", transfer.dispatched_by.name),
+        ("Dispatched At", dispatched_at_str),
+        ("Received By", transfer.received_by.name if transfer.received_by else "-"),
+        ("Received At", transfer.received_at.strftime("%Y-%m-%d %H:%M") if transfer.received_at else "-"),
+    ]
+    png_bytes = pdf_bytes_to_png(pdf_bytes, "STOCK TRANSFER NOTE", transfer.document_no, rows)
     return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{transfer.document_no}.pdf"'},
+        content=png_bytes,
+        media_type="image/png",
+        headers={"Content-Disposition": f'attachment; filename="{transfer.document_no}.png"'},
     )
 
 

@@ -22,6 +22,7 @@ from app.models import (
     UserRole,
 )
 from app.pdf_export import purchase_order_pdf
+from app.image_export import pdf_bytes_to_png
 from app.traceability import build_chain
 
 router = APIRouter(prefix="/purchase-orders", tags=["purchase-orders"])
@@ -166,8 +167,8 @@ def purchase_order_detail(
     return templates.TemplateResponse(request, "purchase_orders_detail.html", context)
 
 
-@router.get("/{purchase_order_id}/pdf")
-def download_purchase_order_pdf(
+@router.get("/{purchase_order_id}/image")
+def download_purchase_order_image(
     purchase_order_id: int,
     request: Request,
     db: Session = Depends(get_db),
@@ -179,8 +180,22 @@ def download_purchase_order_pdf(
         raise HTTPException(status_code=403, detail="Access denied for this branch")
 
     pdf_bytes = purchase_order_pdf(po)
+    status_str = po.status.value if hasattr(po.status, "value") else str(po.status)
+    rows = [
+        ("Supplier", po.supplier.name),
+        ("Product", po.product.name),
+        ("Quantity", f"{po.quantity} {po.product.unit}"),
+        ("Delivery Location", po.delivery_location.name),
+        ("Unit Price", f"INR {po.unit_price:,.2f}"),
+        ("Tax Percent", f"{po.tax_percent}%"),
+        ("Value Before Tax", f"INR {po.value_before_tax:,.2f}"),
+        ("Tax Amount", f"INR {po.tax_amount:,.2f}"),
+        ("Total Value", f"INR {po.total_value:,.2f}"),
+        ("Status", status_str),
+    ]
+    png_bytes = pdf_bytes_to_png(pdf_bytes, "PURCHASE ORDER", po.document_no, rows)
     return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{po.document_no}.pdf"'},
+        content=png_bytes,
+        media_type="image/png",
+        headers={"Content-Disposition": f'attachment; filename="{po.document_no}.png"'},
     )

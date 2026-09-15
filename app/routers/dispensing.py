@@ -353,10 +353,11 @@ def dispensing_detail(
 
 from fastapi import Response
 from app.pdf_export import sales_invoice_pdf
+from app.image_export import pdf_bytes_to_png
 
 
-@router.get("/{sale_id}/pdf")
-def download_sales_invoice_pdf(
+@router.get("/{sale_id}/image")
+def download_sales_invoice_image(
     sale_id: int,
     request: Request,
     db: Session = Depends(get_db),
@@ -370,8 +371,26 @@ def download_sales_invoice_pdf(
         )
 
     pdf_bytes = sales_invoice_pdf(sale)
+    dispensed_at_str = sale.dispensed_at.strftime("%Y-%m-%d %H:%M") if sale.dispensed_at else "-"
+    rows = [
+        ("Location", sale.location.name),
+        ("Product", sale.product.name),
+        ("Batch Number", sale.batch_number),
+        ("Quantity", str(sale.quantity)),
+        ("Payment Mode", sale.payment_mode),
+        ("Prescription Ref", sale.prescription_reference or "-"),
+        ("Unit Price", f"INR {sale.unit_price:,.2f}"),
+        ("Tax Percent", f"{sale.tax_percent}%"),
+        ("Value Before Tax", f"INR {sale.value_before_tax:,.2f}"),
+        ("Tax Amount", f"INR {sale.tax_amount:,.2f}"),
+        ("Total Amount", f"INR {sale.total_amount:,.2f}"),
+        ("Cost Basis (Internal)", f"INR {sale.cost_of_goods:,.2f}"),
+        ("Dispensed By", sale.dispensed_by.name),
+        ("Dispensed At", dispensed_at_str),
+    ]
+    png_bytes = pdf_bytes_to_png(pdf_bytes, "SALES INVOICE / DISPENSING RECEIPT", sale.document_no, rows)
     return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{sale.document_no}.pdf"'},
+        content=png_bytes,
+        media_type="image/png",
+        headers={"Content-Disposition": f'attachment; filename="{sale.document_no}.png"'},
     )

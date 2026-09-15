@@ -26,6 +26,7 @@ from app.models import (
     UserRole,
 )
 from app.pdf_export import grn_pdf
+from app.image_export import pdf_bytes_to_png
 from app.stock import computed_stock
 
 router = APIRouter(prefix="/goods-receipts", tags=["goods-receipts"])
@@ -694,8 +695,8 @@ def goods_receipt_detail(
     )
 
 
-@router.get("/{receipt_id}/pdf")
-def download_goods_receipt_pdf(
+@router.get("/{receipt_id}/image")
+def download_goods_receipt_image(
     receipt_id: int,
     request: Request,
     db: Session = Depends(get_db),
@@ -708,8 +709,28 @@ def download_goods_receipt_pdf(
 
     correction = get_correction_for_receipt(db, receipt.id)
     pdf_bytes = grn_pdf(receipt, correction)
+    posted_at_str = receipt.posted_at.strftime("%Y-%m-%d %H:%M") if receipt.posted_at else "-"
+    rows = [
+        ("Purchase Order", receipt.purchase_order.document_no),
+        ("Supplier", receipt.purchase_order.supplier.name),
+        ("Product", receipt.purchase_order.product.name),
+        ("Location", receipt.purchase_order.delivery_location.name),
+        ("Batch Number", receipt.batch_number),
+        ("Expiry Date", receipt.expiry_date),
+        ("Physical Quantity", str(receipt.physical_quantity)),
+        ("Accepted Quantity", str(receipt.accepted_quantity)),
+        ("Damaged Quantity", str(receipt.damaged_quantity)),
+        ("Missing Quantity", str(receipt.missing_quantity)),
+        ("Posted By", receipt.posted_by.name),
+        ("Posted At", posted_at_str),
+    ]
+    if correction:
+        rows.append(("Correction Reason", correction.reason))
+        rows.append(("Corrected Accepted", str(correction.new_accepted_quantity)))
+        rows.append(("Corrected Damaged", str(correction.new_damaged_quantity)))
+    png_bytes = pdf_bytes_to_png(pdf_bytes, "GOODS RECEIPT NOTE", receipt.document_no, rows)
     return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{receipt.document_no}.pdf"'},
+        content=png_bytes,
+        media_type="image/png",
+        headers={"Content-Disposition": f'attachment; filename="{receipt.document_no}.png"'},
     )

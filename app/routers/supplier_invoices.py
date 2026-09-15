@@ -19,6 +19,7 @@ from app.models import (
     UserRole,
 )
 from app.pdf_export import supplier_invoice_pdf
+from app.image_export import pdf_bytes_to_png
 from app.stock import effective_accepted_quantity
 from app.traceability import build_chain
 
@@ -327,8 +328,8 @@ def resolve_supplier_invoice(
     )
 
 
-@router.get("/{invoice_id}/pdf")
-def download_supplier_invoice_pdf(
+@router.get("/{invoice_id}/image")
+def download_supplier_invoice_image(
     invoice_id: int,
     request: Request,
     db: Session = Depends(get_db),
@@ -340,8 +341,20 @@ def download_supplier_invoice_pdf(
         raise HTTPException(status_code=403, detail="Access denied for this branch")
 
     pdf_bytes = supplier_invoice_pdf(invoice)
+    status_str = invoice.status.value if hasattr(invoice.status, "value") else str(invoice.status)
+    rows = [
+        ("Purchase Order", invoice.purchase_order.document_no),
+        ("Goods Receipt Note", invoice.goods_receipt_note.document_no),
+        ("Invoiced Quantity", str(invoice.invoiced_quantity)),
+        ("Invoiced Value", f"INR {invoice.invoiced_value:,.2f}"),
+        ("Payable Amount", f"INR {invoice.payable_amount:,.2f}"),
+        ("Disputed Amount", f"INR {invoice.disputed_amount:,.2f}"),
+        ("Status", status_str),
+        ("Credit Note Ref", invoice.credit_note_reference or "-"),
+    ]
+    png_bytes = pdf_bytes_to_png(pdf_bytes, "SUPPLIER INVOICE", invoice.document_no, rows)
     return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{invoice.document_no}.pdf"'},
+        content=png_bytes,
+        media_type="image/png",
+        headers={"Content-Disposition": f'attachment; filename="{invoice.document_no}.png"'},
     )
