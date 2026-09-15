@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.context import get_acting_user, header_context, scoped_location_ids, success_redirect
+from app.context import create_notification, get_acting_user, header_context, scoped_location_ids, success_redirect
 from app.database import get_db
 from app.document_numbers import next_document_number
 from app.models import (
@@ -273,6 +273,18 @@ def create_transfer(
             performed_by_id=by_id,
         )
     )
+
+    # --- Notify Destination Location Staff ---
+    create_notification(
+        db=db,
+        title=f"Incoming Transfer {transfer.document_no}",
+        message=f"{src_loc.name} dispatched {qty}x {product.name} (Batch: {batch_number.strip()}) to {dst_loc.name}",
+        link=f"/transfers/{transfer.id}",
+        target_location_id=dst_id,
+        company_id=acting_user.company_id if acting_user else None,
+        icon_type="transfer",
+    )
+
     db.commit()
     return RedirectResponse(
         url=success_redirect("/transfers", f"{transfer.document_no} dispatched"),
@@ -341,6 +353,18 @@ def receive_transfer(
             performed_by_id=by_id,
         )
     )
+
+    # --- Notify Source Location / Dispatcher ---
+    create_notification(
+        db=db,
+        title=f"Transfer Received {transfer.document_no}",
+        message=f"Transfer {transfer.document_no} ({transfer.quantity}x {transfer.product.name}) received at {transfer.destination_location.name}",
+        link=f"/transfers/{transfer.id}",
+        user_id=transfer.dispatched_by_id,
+        company_id=acting_user.company_id if acting_user else None,
+        icon_type="check",
+    )
+
     db.commit()
     return RedirectResponse(
         url=success_redirect("/transfers", f"{transfer.document_no} received"),

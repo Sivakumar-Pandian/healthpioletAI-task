@@ -59,23 +59,29 @@ def invoice_form_data(invoiced_quantity="", invoiced_value=""):
 def invoice_form_response(
     request: Request,
     db: Session,
-    grn: GoodsReceiptNote,
+    grn: GoodsReceiptNote | None,
+    available_grns: list[GoodsReceiptNote],
     error_messages: list[str],
     form_data: dict,
     status_code: int = 422,
 ):
     context = header_context(db, request)
-    eff_accepted = effective_accepted_quantity(db, grn)
-    expected_payable = round(
-        eff_accepted
-        * grn.purchase_order.unit_price
-        * (1 + grn.purchase_order.tax_percent / 100),
-        2,
+    eff_accepted = effective_accepted_quantity(db, grn) if grn else 0
+    expected_payable = (
+        round(
+            eff_accepted
+            * grn.purchase_order.unit_price
+            * (1 + grn.purchase_order.tax_percent / 100),
+            2,
+        )
+        if grn
+        else 0
     )
     context.update(
         {
             "goods_receipt": grn,
-            "purchase_order": grn.purchase_order,
+            "purchase_order": grn.purchase_order if grn else None,
+            "available_grns": available_grns,
             "effective_accepted": eff_accepted,
             "expected_payable": expected_payable,
             "error_messages": error_messages,
@@ -144,8 +150,8 @@ def list_supplier_invoices(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/new", response_class=HTMLResponse)
 def new_supplier_invoice_form(
-    grn_id: int,
     request: Request,
+    grn_id: int | None = None,
     db: Session = Depends(get_db),
 ):
     acting_user = get_acting_user(db, request)
@@ -154,30 +160,48 @@ def new_supplier_invoice_form(
             status_code=403,
             detail="Forbidden: Only Central Purchasing or Company Admin can process supplier invoices.",
         )
-    grn = get_grn_or_404(db, grn_id)
     loc_ids = scoped_location_ids(db, acting_user)
-    if loc_ids is not None and grn.purchase_order.delivery_location_id not in loc_ids:
-        raise HTTPException(status_code=403, detail="Access denied for this branch")
 
-    if get_invoice_for_grn(db, grn.id):
-        raise HTTPException(
-            status_code=422,
-            detail="A supplier invoice already exists for this goods receipt.",
+    subquery = db.query(SupplierInvoice.grn_id).subquery()
+    grn_query = db.query(GoodsReceiptNote).filter(~GoodsReceiptNote.id.in_(subquery))
+    if loc_ids is not None:
+        grn_query = grn_query.join(PurchaseOrder).filter(PurchaseOrder.delivery_location_id.in_(loc_ids))
+    available_grns = grn_query.order_by(GoodsReceiptNote.id.desc()).all()
+
+    grn = None
+    if grn_id is not None:
+        grn = get_grn_or_404(db, grn_id)
+        if loc_ids is not None and grn.purchase_order.delivery_location_id not in loc_ids:
+            raise HTTPException(status_code=403, detail="Access denied for this branch")
+        if get_invoice_for_grn(db, grn.id):
+            raise HTTPException(
+                status_code=422,
+                detail="A supplier invoice already exists for this goods receipt.",
+            )
+    elif available_grns:
+        grn = available_grns[0]
+
+    invoiced_qty = effective_accepted_quantity(db, grn) if grn else ""
+    invoiced_val = (
+        round(
+            effective_accepted_quantity(db, grn)
+            * grn.purchase_order.unit_price
+            * (1 + grn.purchase_order.tax_percent / 100),
+            2,
         )
+        if grn
+        else ""
+    )
 
     return invoice_form_response(
         request,
         db,
         grn,
+        available_grns,
         [],
         invoice_form_data(
-            invoiced_quantity=effective_accepted_quantity(db, grn),
-            invoiced_value=round(
-                effective_accepted_quantity(db, grn)
-                * grn.purchase_order.unit_price
-                * (1 + grn.purchase_order.tax_percent / 100),
-                2,
-            ),
+            invoiced_quantity=invoiced_qty,
+            invoiced_value=invoiced_val,
         ),
         status_code=200,
     )
@@ -209,11 +233,18 @@ def create_supplier_invoice(
 
     form_data = invoice_form_data(invoiced_quantity, invoiced_value)
 
+    subquery = db.query(SupplierInvoice.grn_id).subquery()
+    grn_query = db.query(GoodsReceiptNote).filter(~GoodsReceiptNote.id.in_(subquery))
+    if loc_ids is not None:
+        grn_query = grn_query.join(PurchaseOrder).filter(PurchaseOrder.delivery_location_id.in_(loc_ids))
+    available_grns = grn_query.order_by(GoodsReceiptNote.id.desc()).all()
+
     if get_invoice_for_grn(db, grn.id):
         return invoice_form_response(
             request,
             db,
             grn,
+            available_grns,
             ["A supplier invoice already exists for this goods receipt."],
             form_data,
         )
@@ -226,6 +257,7 @@ def create_supplier_invoice(
             request,
             db,
             grn,
+            available_grns,
             friendly_error_messages(exc.detail),
             form_data,
         )

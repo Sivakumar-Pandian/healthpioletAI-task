@@ -4,7 +4,9 @@
 <div class="flex items-center justify-between mb-6">
     <h1 class="font-serif text-2xl">Record Supplier Invoice</h1>
     <div class="flex gap-4 text-sm">
+        {% if goods_receipt %}
         <a href="/goods-receipts/{{ goods_receipt.id }}" class="text-ink underline">Back to Goods Receipt</a>
+        {% endif %}
         <a href="/supplier-invoices" class="text-ink underline">Back to Supplier Invoices</a>
     </div>
 </div>
@@ -20,6 +22,20 @@
 </div>
 {% endif %}
 
+{% if available_grns %}
+<div class="mb-6 max-w-xl">
+    <label class="block text-sm font-semibold mb-1">Select Goods Receipt Note (GRN):</label>
+    <select onchange="if(this.value) window.location.href='/supplier-invoices/new?grn_id=' + this.value" class="w-full border border-ink px-3 py-2 bg-paper text-sm font-mono cursor-pointer">
+        {% for g in available_grns %}
+        <option value="{{ g.id }}" {% if goods_receipt and g.id == goods_receipt.id %}selected{% endif %}>
+            {{ g.document_no }} — PO: {{ g.purchase_order.document_no }} ({{ g.purchase_order.supplier.name }} - {{ g.purchase_order.product.name }})
+        </option>
+        {% endfor %}
+    </select>
+</div>
+{% endif %}
+
+{% if goods_receipt %}
 <div class="border-y border-ink max-w-3xl grid grid-cols-1 md:grid-cols-3 text-sm mb-8">
     <div class="py-3 border-b border-gray-300"><span class="block text-gray-600">Goods Receipt</span><span class="font-mono">{{ goods_receipt.document_no }}</span></div>
     <div class="py-3 border-b border-gray-300"><span class="block text-gray-600">Purchase Order</span><span class="font-mono">{{ purchase_order.document_no }}</span></div>
@@ -46,4 +62,14 @@
 
     <button type="submit" class="bg-ink text-white px-4 py-2 text-sm">Record Supplier Invoice</button>
 </form>
+{% else %}
+<div class="border border-amber-300 bg-amber-50 p-4 max-w-xl text-sm text-amber-900 rounded">
+    <p class="font-semibold mb-1">No Goods Receipts Pending Invoicing</p>
+    <p class="text-xs text-amber-800">All Goods Receipt Notes in your branch have already been invoiced or no GRNs exist yet.</p>
+    <div class="mt-3 flex gap-3">
+        <a href="/goods-receipts" class="text-ink underline text-xs font-semibold">View Goods Receipts</a>
+        <a href="/purchase-orders" class="text-ink underline text-xs font-semibold">View Purchase Orders</a>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

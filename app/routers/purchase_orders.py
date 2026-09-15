@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.context import (
+    create_notification,
     get_acting_user,
     header_context,
     scoped_location_ids,
@@ -136,6 +137,18 @@ def create_purchase_order(
         status=PurchaseOrderStatus.OPEN,
     )
     db.add(purchase_order)
+
+    # Notify Receiving Staff / Delivery Location
+    create_notification(
+        db=db,
+        title=f"New Purchase Order {purchase_order.document_no}",
+        message=f"PO issued for {purchase_order.quantity}x {requisition.product.name} to deliver to {purchase_order.delivery_location.name}",
+        link=f"/purchase-orders/{purchase_order.id}",
+        target_location_id=delivery_location_id,
+        company_id=acting_user.company_id if acting_user else None,
+        icon_type="po",
+    )
+
     db.commit()
     return RedirectResponse(
         url=success_redirect("/purchase-orders", f"{purchase_order.document_no} created"),

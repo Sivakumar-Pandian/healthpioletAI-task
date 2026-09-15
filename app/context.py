@@ -38,15 +38,32 @@ def get_user_notifications(db: Session, acting_user: AppUser | None, limit: int 
     if not acting_user:
         return []
 
-    conditions = [Notification.user_id == acting_user.id]
-
-    if acting_user.role:
-        conditions.append(Notification.target_role == acting_user.role)
+    user_match = Notification.user_id == acting_user.id
 
     if acting_user.home_location_id:
-        conditions.append(Notification.target_location_id == acting_user.home_location_id)
+        loc_cond = or_(
+            Notification.target_location_id == acting_user.home_location_id,
+            Notification.target_location_id.is_(None),
+        )
+    else:
+        loc_cond = Notification.target_location_id.is_(None)
 
-    query = db.query(Notification).filter(or_(*conditions))
+    if acting_user.role:
+        role_cond = or_(
+            Notification.target_role == acting_user.role,
+            Notification.target_role.is_(None),
+        )
+    else:
+        role_cond = Notification.target_role.is_(None)
+
+    broadcast = (
+        Notification.user_id.is_(None)
+        & loc_cond
+        & role_cond
+        & ~((Notification.target_location_id.is_(None)) & (Notification.target_role.is_(None)))
+    )
+
+    query = db.query(Notification).filter(or_(user_match, broadcast))
 
     if acting_user.company_id:
         query = query.filter(
