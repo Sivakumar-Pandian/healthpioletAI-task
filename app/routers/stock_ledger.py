@@ -14,8 +14,8 @@ templates = Jinja2Templates(directory="templates")
 @router.get("", response_class=HTMLResponse)
 def stock_ledger(
     request: Request,
-    location_id: int | None = Query(default=None),
-    batch_number: str | None = Query(default=None),
+    location_id: int | None = None,
+    batch_number: str | None = None,
     db: Session = Depends(get_db),
 ):
     context = header_context(db, request)

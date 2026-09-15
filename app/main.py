@@ -75,14 +75,14 @@ app.include_router(qr_router)
 @app.get("/", response_class=HTMLResponse)
 def read_root(
     request: Request,
-    acting_as_id: int | None = Query(default=None),
-    location_id: int | None = Query(default=None),
+    acting_as_id: int | None = None,
+    location_id: int | None = None,
     db: Session = Depends(get_db),
 ):
     context = header_context(db, request, acting_as_id=acting_as_id)
     active_user = context["acting_user"]
     if active_user is None:
-        raise HTTPException(status_code=500, detail="No application users configured")
+        return RedirectResponse(url="/login", status_code=303)
 
     loc_ids = scoped_location_ids(db, active_user)
 
