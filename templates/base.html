@@ -56,6 +56,7 @@
             </div>
             
             <div class="flex items-center gap-4">
+                {% if acting_user %}
                 <!-- QR Code Scanner Header Button -->
                 <button id="open-qr-modal-btn" type="button" class="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/10 border border-amber-500/40 text-amber-400 hover:bg-amber-500/20 text-xs font-mono font-semibold rounded transition-colors shadow-sm" title="Scan QR Code or Barcode">
                     <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
@@ -115,6 +116,7 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}{# end acting_user notification block #}
 
                 {% if acting_user %}
                 <div class="flex items-center gap-3 bg-slate-800/90 border border-slate-700 px-3 py-1.5 rounded text-xs">
@@ -154,60 +156,122 @@
         
         <!-- Body row -->
         <div class="flex flex-1 overflow-hidden">
-            <!-- Sidebar -->
+            <!-- Role-based Sidebar Navigation -->
+            {% set role = acting_user.role.value if acting_user else '' %}
             <nav class="w-60 bg-slate-950 border-r border-slate-800 p-4 flex flex-col justify-between overflow-y-auto">
                 <div class="space-y-6">
+
+                    <!-- ═══ Primary Section ═══ -->
                     <div>
-                        <div class="px-3 mb-2 text-[10px] font-mono font-bold tracking-wider text-slate-500 uppercase">Core Supply Chain</div>
+                        <div class="px-3 mb-2 text-[10px] font-mono font-bold tracking-wider text-slate-500 uppercase">
+                            {% if role == 'BRANCH_STAFF' %}Branch Operations
+                            {% elif role == 'RECEIVING_STAFF' %}Receiving Operations
+                            {% elif role == 'CENTRAL_PURCHASING' %}Purchasing
+                            {% else %}Core Supply Chain{% endif %}
+                        </div>
                         <ul class="space-y-1 text-sm font-medium">
+
+                            <!-- Dashboard — all roles -->
                             <li>
                                 <a href="/" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path == '/' %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
                                     <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                                     <span>Dashboard</span>
                                 </a>
                             </li>
+
+                            <!-- Requisitions — BRANCH_STAFF (create), CENTRAL_PURCHASING (approve), COMPANY_ADMIN -->
+                            {% if role in ['BRANCH_STAFF', 'CENTRAL_PURCHASING', 'COMPANY_ADMIN'] %}
                             <li>
                                 <a href="/requisitions" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/requisitions') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                     <span>Requisitions</span>
+                                    {% if role in ['CENTRAL_PURCHASING', 'COMPANY_ADMIN'] %}<span class="ml-auto text-[9px] font-mono bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded">Approve</span>{% endif %}
                                 </a>
                             </li>
+                            {% endif %}
+
+                            <!-- Purchase Orders — CENTRAL_PURCHASING, COMPANY_ADMIN -->
+                            {% if role in ['CENTRAL_PURCHASING', 'COMPANY_ADMIN'] %}
                             <li>
                                 <a href="/purchase-orders" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/purchase-orders') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                                     <span>Purchase Orders</span>
                                 </a>
                             </li>
+                            {% endif %}
+
+                            <!-- Goods Receipts — RECEIVING_STAFF, CENTRAL_PURCHASING, COMPANY_ADMIN -->
+                            {% if role in ['RECEIVING_STAFF', 'CENTRAL_PURCHASING', 'COMPANY_ADMIN'] %}
                             <li>
                                 <a href="/goods-receipts" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/goods-receipts') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                                     <span>Goods Receipts</span>
                                 </a>
                             </li>
+                            {% endif %}
+
                         </ul>
                     </div>
 
+                    <!-- ═══ Inventory & Operations — hidden from BRANCH_STAFF ═══ -->
+                    {% if role in ['RECEIVING_STAFF', 'CENTRAL_PURCHASING', 'COMPANY_ADMIN'] %}
                     <div>
-                        <div class="px-3 mb-2 text-[10px] font-mono font-bold tracking-wider text-slate-500 uppercase">Inventory & Operations</div>
+                        <div class="px-3 mb-2 text-[10px] font-mono font-bold tracking-wider text-slate-500 uppercase">Inventory &amp; Operations</div>
                         <ul class="space-y-1 text-sm font-medium">
+
+                            <!-- Stock Ledger — RECEIVING_STAFF, CENTRAL_PURCHASING, COMPANY_ADMIN -->
                             <li>
                                 <a href="/stock-ledger" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/stock-ledger') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                                     <span>Stock Ledger</span>
                                 </a>
                             </li>
+
+                            <!-- Supplier Invoices — CENTRAL_PURCHASING, COMPANY_ADMIN only -->
+                            {% if role in ['CENTRAL_PURCHASING', 'COMPANY_ADMIN'] %}
                             <li>
                                 <a href="/supplier-invoices" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/supplier-invoices') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     <span>Supplier Invoices</span>
                                 </a>
                             </li>
+                            {% endif %}
+
+                            <!-- Transfers — RECEIVING_STAFF, CENTRAL_PURCHASING, COMPANY_ADMIN -->
                             <li>
                                 <a href="/transfers" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/transfers') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                                     <span>Transfers</span>
                                 </a>
                             </li>
+
+                            <!-- Dispensing — COMPANY_ADMIN only in this section -->
+                            {% if role == 'COMPANY_ADMIN' %}
+                            <li>
+                                <a href="/dispensing" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/dispensing') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L5.6 15.12a2 2 0 00-1.096.185l-1.39.7a2 2 0 00-.914 2.274l.64 2.133a2 2 0 001.9 1.432h14.54a2 2 0 001.9-1.432l.64-2.133a2 2 0 00-.914-2.274l-1.392-.7z"></path></svg>
+                                    <span>Dispensing</span>
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            <!-- Traceability — all in this section -->
+                            <li>
+                                <a href="/traceability" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/traceability') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                    <span>Traceability</span>
+                                </a>
+                            </li>
+
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <!-- ═══ Pharmacy — BRANCH_STAFF only ═══ -->
+                    {% if role == 'BRANCH_STAFF' %}
+                    <div>
+                        <div class="px-3 mb-2 text-[10px] font-mono font-bold tracking-wider text-slate-500 uppercase">Pharmacy</div>
+                        <ul class="space-y-1 text-sm font-medium">
                             <li>
                                 <a href="/dispensing" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors {% if request.url.path.startswith('/dispensing') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L5.6 15.12a2 2 0 00-1.096.185l-1.39.7a2 2 0 00-.914 2.274l.64 2.133a2 2 0 001.9 1.432h14.54a2 2 0 001.9-1.432l.64-2.133a2 2 0 00-.914-2.274l-1.392-.7z"></path></svg>
@@ -222,10 +286,29 @@
                             </li>
                         </ul>
                     </div>
+                    {% endif %}
+
+                    <!-- ═══ QR Scan shortcut — all authenticated users ═══ -->
+                    {% if acting_user %}
+                    <div>
+                        <button id="open-qr-modal-sidebar-btn" type="button" class="open-qr-scanner-btn w-full flex items-center gap-3 px-3 py-2 rounded text-amber-400 hover:text-amber-200 hover:bg-amber-500/10 border border-amber-500/25 transition-colors text-sm font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                            <span>Scan QR Code</span>
+                        </button>
+                    </div>
+                    {% endif %}
+
                 </div>
 
+                <!-- ═══ Admin section — COMPANY_ADMIN only ═══ -->
+                {% if role == 'COMPANY_ADMIN' %}
                 <div class="border-t border-slate-800 pt-4 space-y-2">
-                    <div class="text-[10px] font-mono text-slate-500 uppercase px-1 mb-1">Demo Scenarios</div>
+                    <div class="text-[10px] font-mono text-slate-500 uppercase px-1 mb-1">Admin</div>
+                    <a href="/master-data" class="flex items-center gap-3 px-3 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors text-sm font-medium {% if request.url.path.startswith('/master-data') %}border-l-4 border-amber bg-slate-800 text-white font-semibold shadow-sm{% endif %}">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path></svg>
+                        <span>Master Data</span>
+                    </a>
+                    <div class="text-[10px] font-mono text-slate-500 uppercase px-1 mt-3 mb-1">Demo Scenarios</div>
                     <form action="/demo/replay" method="post" onsubmit="return confirm('Replay full demo scenario? Existing transactions will be cleared and replaced with a complete REQ→SALE story.');">
                         <button type="submit" class="border border-amber-600/60 text-amber-400 px-3 py-1.5 text-xs rounded w-full hover:bg-amber-600/20 transition-colors font-mono">⚡ Run Demo Replay</button>
                     </form>
@@ -233,6 +316,7 @@
                         <button type="submit" class="border border-red-800/60 text-red-400 px-3 py-1.5 text-xs rounded w-full hover:bg-red-900/30 transition-colors font-mono">🗑 Reset Demo Data</button>
                     </form>
                 </div>
+                {% endif %}
             </nav>
             
             <!-- Main content container -->

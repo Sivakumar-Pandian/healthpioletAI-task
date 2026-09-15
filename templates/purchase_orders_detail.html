@@ -41,7 +41,7 @@
 <div class="mt-6">
     {% if goods_receipt %}
     <a href="/goods-receipts/{{ goods_receipt.id }}" class="text-ink underline">View Goods Receipt {{ goods_receipt.document_no }}</a>
-    {% elif purchase_order.status.value in ['OPEN', 'PARTIALLY_RECEIVED'] and acting_user and (acting_user.role.value in ['RECEIVING_STAFF', 'CENTRAL_PURCHASING', 'COMPANY_ADMIN'] or (acting_user.role.value == 'BRANCH_STAFF' and acting_user.home_location_id == purchase_order.delivery_location_id)) %}
+    {% elif purchase_order.status.value in ['OPEN', 'PARTIALLY_RECEIVED'] and acting_user and acting_user.role.value in ['RECEIVING_STAFF', 'CENTRAL_PURCHASING', 'COMPANY_ADMIN'] %}
     <a href="/goods-receipts/new?po_id={{ purchase_order.id }}" class="bg-ink text-white px-4 py-2 text-sm">Receive Goods for this PO</a>
     {% endif %}
 </div>
