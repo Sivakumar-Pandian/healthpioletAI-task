@@ -41,25 +41,26 @@
 <body class="bg-paper text-ink font-sans antialiased min-h-screen">
     <div class="flex flex-col h-screen overflow-hidden">
         <!-- Modern ERP Header Bar -->
-        <header class="bg-slate-900 text-white px-4 sm:px-6 py-2.5 flex justify-between items-center border-b border-slate-800 shadow-md z-20">
-            <div class="flex items-center gap-2 sm:gap-4">
-                <!-- Mobile Sidebar Hamburger Toggle -->
-                <button id="mobile-sidebar-toggle" type="button" class="md:hidden text-slate-300 hover:text-white p-1 rounded focus:outline-none hover:bg-slate-800 transition-colors" aria-label="Toggle Navigation Menu">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                </button>
-
+        <header class="bg-slate-900 text-white px-6 py-2.5 flex justify-between items-center border-b border-slate-800 shadow-md z-20">
+            <div class="flex items-center gap-4">
                 <a href="/" class="flex items-center gap-2 text-white hover:text-amber-400 transition-colors">
                     <div class="w-8 h-8 rounded bg-amber-600 text-white flex items-center justify-center font-bold font-serif text-lg shadow">H</div>
-                    <span class="font-serif text-lg sm:text-xl font-bold tracking-tight">HealthPilot <span class="text-amber-500 font-sans text-[10px] sm:text-xs uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">Ops</span></span>
+                    <span class="font-serif text-xl font-bold tracking-tight">HealthPilot <span class="text-amber-500 font-sans text-xs uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">Ops ERP</span></span>
                 </a>
                 {% if company %}
-                <div class="hidden sm:flex items-center gap-1.5 bg-slate-800 border border-slate-700 text-amber-400 px-2.5 py-1 rounded text-xs font-mono font-medium">
+                <div class="flex items-center gap-1.5 bg-slate-800 border border-slate-700 text-amber-400 px-3 py-1 rounded text-xs font-mono font-medium">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4m-4 0H9m4 0V7m0 0h4m-4 0H9"></path></svg>
                     <span>{{ company.name }}</span>
                 </div>
                 {% endif %}
             </div>
             
+            <div class="flex items-center gap-4">
+                <!-- QR Code Scanner Header Button -->
+                <button id="open-qr-modal-btn" type="button" class="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/10 border border-amber-500/40 text-amber-400 hover:bg-amber-500/20 text-xs font-mono font-semibold rounded transition-colors shadow-sm" title="Scan QR Code or Barcode">
+                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                    <span>Scan QR</span>
+                </button>
 
                 <div class="relative" id="notification-dropdown-container">
                     <button id="notification-bell-btn" type="button" class="relative p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded transition-colors focus:outline-none" title="Notifications">
@@ -72,7 +73,7 @@
                     </button>
 
                     <!-- Dropdown Menu -->
-                    <div id="notification-menu" class="hidden absolute right-0 mt-2 w-72 sm:w-80 bg-slate-900 border border-slate-700 shadow-2xl rounded-lg overflow-hidden z-50">
+                    <div id="notification-menu" class="hidden absolute right-0 mt-2 w-80 bg-slate-900 border border-slate-700 shadow-2xl rounded-lg overflow-hidden z-50">
                         <div class="px-4 py-2.5 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
                             <span class="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
                                 <span class="w-2 h-2 rounded-full bg-red-500 inline-block animate-ping"></span>
@@ -116,31 +117,32 @@
                 </div>
 
                 {% if acting_user %}
-                <div class="flex items-center gap-2 bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded text-xs">
-                    <div class="w-6 h-6 rounded-full bg-amber-600 text-white font-bold flex items-center justify-center text-xs shadow-inner">
+                <div class="flex items-center gap-3 bg-slate-800/90 border border-slate-700 px-3 py-1.5 rounded text-xs">
+                    <div class="w-7 h-7 rounded-full bg-amber-600 text-white font-bold flex items-center justify-center text-xs shadow-inner">
                         {{ acting_user.name[:1] }}
                     </div>
                     <div class="flex flex-col">
-                        <span class="font-semibold text-white leading-tight max-w-[90px] sm:max-w-[140px] truncate">{{ acting_user.name }}</span>
-                        <span class="text-[9px] text-slate-400 font-mono hidden sm:inline">
+                        <span class="font-semibold text-white leading-tight">{{ acting_user.name }}</span>
+                        <span class="text-[10px] text-slate-400 font-mono">
                             {{ acting_user.role.value }}
+                            {% if acting_user.home_location %} • {{ acting_user.home_location.name }}{% endif %}
                         </span>
                     </div>
-                    <a href="/logout" class="text-xs font-mono text-red-400 hover:text-red-300 hover:underline font-semibold ml-1 border-l border-slate-700 pl-2 py-0.5 transition-colors">Logout</a>
+                    <a href="/logout" class="text-xs font-mono text-red-400 hover:text-red-300 hover:underline font-semibold ml-2 border-l border-slate-700 pl-3 py-0.5 transition-colors">Logout</a>
                 </div>
                 {% else %}
-                <a href="/login" class="text-xs font-mono border border-amber-500 text-amber-400 px-2.5 py-1 rounded hover:bg-amber-500/10 font-semibold transition-colors">Login</a>
+                <a href="/login" class="text-xs font-mono border border-amber-500 text-amber-400 px-3 py-1.5 rounded hover:bg-amber-500/10 font-semibold transition-colors">Login</a>
                 {% endif %}
 
                 {% if acting_user and acting_user.role.value == 'BRANCH_STAFF' and acting_user.home_location %}
-                <div class="relative hidden sm:block">
-                    <select id="location-select" class="border border-slate-700 px-2.5 py-1 bg-slate-800 text-slate-300 text-xs font-medium rounded cursor-not-allowed opacity-90" disabled data-locked="true" title="Location locked to your home branch">
-                        <option value="{{ acting_user.home_location.id }}" selected>📍 {{ acting_user.home_location.name }}</option>
+                <div class="relative">
+                    <select id="location-select" class="border border-slate-700 px-3 py-1.5 bg-slate-800 text-slate-300 text-xs font-medium rounded cursor-not-allowed opacity-90" disabled data-locked="true" title="Location locked to your home branch">
+                        <option value="{{ acting_user.home_location.id }}" selected>📍 {{ acting_user.home_location.name }} (Locked)</option>
                     </select>
                 </div>
                 {% else %}
-                <div class="relative hidden sm:block">
-                    <select id="location-select" class="border border-slate-700 px-2.5 py-1 bg-slate-800 text-white text-xs font-medium rounded focus:border-amber-500 focus:outline-none cursor-pointer">
+                <div class="relative">
+                    <select id="location-select" class="border border-slate-700 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded focus:border-amber-500 focus:outline-none cursor-pointer">
                         {% for loc in locations %}
                         <option value="{{ loc.id }}" {% if loc.id == selected_location_id %}selected{% endif %}>📍 {{ loc.name }}</option>
                         {% endfor %}
@@ -151,13 +153,9 @@
         </header>
         
         <!-- Body row -->
-        <div class="flex flex-1 overflow-hidden relative">
-            <!-- Mobile Sidebar Backdrop Overlay -->
-            <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-950/70 z-30 hidden md:hidden transition-opacity"></div>
-
-            <!-- Sidebar Drawer -->
-            <nav id="mobile-sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-950 border-r border-slate-800 p-4 flex flex-col justify-between overflow-y-auto transform -translate-x-full md:translate-x-0 md:static transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
-
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar -->
+            <nav class="w-60 bg-slate-950 border-r border-slate-800 p-4 flex flex-col justify-between overflow-y-auto">
                 <div class="space-y-6">
                     <div>
                         <div class="px-3 mb-2 text-[10px] font-mono font-bold tracking-wider text-slate-500 uppercase">Core Supply Chain</div>
@@ -304,33 +302,6 @@
             params.set('location_id', locationSelect.value);
             window.location.href = `${window.location.pathname}?${params.toString()}`;
         });
-    }
-
-    // Mobile Sidebar Drawer Toggle Logic
-    const mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
-    const mobileSidebar = document.getElementById('mobile-sidebar');
-    const sidebarBackdrop = document.getElementById('sidebar-backdrop');
-
-    if (mobileSidebarToggle && mobileSidebar && sidebarBackdrop) {
-        function openSidebar() {
-            mobileSidebar.classList.remove('-translate-x-full');
-            sidebarBackdrop.classList.remove('hidden');
-        }
-        function closeSidebar() {
-            mobileSidebar.classList.add('-translate-x-full');
-            sidebarBackdrop.classList.add('hidden');
-        }
-
-        mobileSidebarToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (mobileSidebar.classList.contains('-translate-x-full')) {
-                openSidebar();
-            } else {
-                closeSidebar();
-            }
-        });
-
-        sidebarBackdrop.addEventListener('click', closeSidebar);
     }
 
     // QR Code Scanner Modal Logic

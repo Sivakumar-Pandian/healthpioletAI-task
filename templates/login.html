@@ -75,35 +75,13 @@
             </p>
         </div>
 
-        <div class="mt-6 bg-slate-50 p-4 border border-gray-200 rounded text-xs font-mono text-gray-700 space-y-2">
-            <p class="font-bold text-gray-900 uppercase tracking-wider mb-2">⚡ 1-Click Quick Demo Login:</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button type="button" onclick="quickLogin('anita@healthpilot.org')" class="px-2.5 py-1.5 bg-white border border-gray-300 rounded hover:border-amber-600 hover:text-amber-700 text-left font-sans transition-colors shadow-sm">
-                    <div class="font-semibold text-slate-900">Anita Rao</div>
-                    <div class="text-[10px] text-slate-500 font-mono">Branch A Staff</div>
-                </button>
-                <button type="button" onclick="quickLogin('karthik@healthpilot.org')" class="px-2.5 py-1.5 bg-white border border-gray-300 rounded hover:border-amber-600 hover:text-amber-700 text-left font-sans transition-colors shadow-sm">
-                    <div class="font-semibold text-slate-900">Karthik Iyer</div>
-                    <div class="text-[10px] text-slate-500 font-mono">Branch B Staff</div>
-                </button>
-                <button type="button" onclick="quickLogin('meena@healthpilot.org')" class="px-2.5 py-1.5 bg-white border border-gray-300 rounded hover:border-amber-600 hover:text-amber-700 text-left font-sans transition-colors shadow-sm">
-                    <div class="font-semibold text-slate-900">Meena Pillai</div>
-                    <div class="text-[10px] text-slate-500 font-mono">Central Purchasing</div>
-                </button>
-                <button type="button" onclick="quickLogin('rahul@healthpilot.org')" class="px-2.5 py-1.5 bg-white border border-gray-300 rounded hover:border-amber-600 hover:text-amber-700 text-left font-sans transition-colors shadow-sm">
-                    <div class="font-semibold text-slate-900">Rahul Dev</div>
-                    <div class="text-[10px] text-slate-500 font-mono">Receiving Staff</div>
-                </button>
-            </div>
+        <div class="mt-6 bg-gray-50 p-4 border border-gray-200 text-xs font-mono text-gray-600 space-y-1">
+            <p class="font-bold text-gray-800 uppercase mb-1">Demo Accounts (Password: password123):</p>
+            <p>• Anita Rao (Branch A Staff): <code class="text-amber">anita@healthpilot.org</code></p>
+            <p>• Karthik Iyer (Branch B Staff): <code class="text-amber">karthik@healthpilot.org</code></p>
+            <p>• Meena Pillai (Central Purchasing): <code class="text-amber">meena@healthpilot.org</code></p>
+            <p>• Rahul Dev (Receiving Staff): <code class="text-amber">rahul@healthpilot.org</code></p>
         </div>
     </div>
-    <script>
-    function quickLogin(email) {
-        document.getElementById('email').value = email;
-        document.getElementById('password').value = 'password123';
-        document.querySelector('form[action="/login"]').submit();
-    }
-    </script>
 </body>
 </html>
-
